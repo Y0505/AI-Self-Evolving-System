@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   createGitBranchesTool,
+  createGitCheckoutTool,
   createGitCommitTool,
   createGitDiffTool,
   createGitStageTool,
@@ -140,5 +141,37 @@ test("git_commit requires approval and validates the commit message", async () =
   await assert.rejects(
     tool.execute({ message: "   " }, { workspaceRoot: "/workspace" }),
     /cannot be empty/,
+  );
+});
+
+test("git_checkout requires approval and switches only to an existing local branch", async () => {
+  const root = await createRepository();
+  await runGitCommand(["config", "user.email", "test@example.com"], { cwd: root });
+  await runGitCommand(["config", "user.name", "Test User"], { cwd: root });
+  await writeFile(join(root, "example.txt"), "main\n", "utf8");
+  assert.equal((await runGitCommand(["add", "--", "example.txt"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["commit", "-m", "initial"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["branch", "feature/test"], { cwd: root })).exitCode, 0);
+
+  const tool = createGitCheckoutTool();
+  assert.equal(tool.requiresApproval, true);
+  const result = await tool.execute({ name: "feature/test" }, { workspaceRoot: root });
+
+  assert.equal(result.exitCode, 0);
+  const current = await runGitCommand(["branch", "--show-current"], { cwd: root });
+  assert.equal(current.stdout.trim(), "feature/test");
+});
+
+test("git_checkout rejects unsafe branch names", async () => {
+  const root = await createRepository();
+  const tool = createGitCheckoutTool();
+
+  await assert.rejects(
+    tool.execute({ name: "   " }, { workspaceRoot: root }),
+    /cannot be empty/,
+  );
+  await assert.rejects(
+    tool.execute({ name: "-b" }, { workspaceRoot: root }),
+    /cannot start with '-'/,
   );
 });

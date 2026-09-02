@@ -15,6 +15,7 @@ import {
 import { createRunTestsTool } from "../tools/test-runner.js";
 import {
   createGitBranchesTool,
+  createGitCheckoutTool,
   createGitCommitTool,
   createGitCreateBranchTool,
   createGitDiffTool,
@@ -64,6 +65,7 @@ export class AgentRuntime {
     registry.register(createGitBranchesTool());
     registry.register(createGitCreateBranchTool());
     registry.register(createGitStageTool());
+    registry.register(createGitCheckoutTool());
     registry.register(createGitCommitTool());
 
     const model = new ProviderAgentModel({

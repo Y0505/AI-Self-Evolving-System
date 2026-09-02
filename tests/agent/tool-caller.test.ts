@@ -5,13 +5,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { ToolCaller } from "../../src/agent/tool-caller.js";
 import { ToolRegistry } from "../../src/tools/registry.js";
-import { createGitCommitTool } from "../../src/tools/git-tools.js";
+import { createGitCheckoutTool, createGitCommitTool } from "../../src/tools/git-tools.js";
 import { runGitCommand } from "../../src/git/git-command.js";
 
 const context = { workspaceRoot: "/workspace" };
 
 async function createRepository(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "ai-self-evolving-commit-"));
+  const root = await mkdtemp(join(tmpdir(), "ai-self-evolving-git-"));
   assert.equal((await runGitCommand(["init"], { cwd: root })).exitCode, 0);
   assert.equal((await runGitCommand(["config", "user.email", "test@example.com"], { cwd: root })).exitCode, 0);
   assert.equal((await runGitCommand(["config", "user.name", "Test User"], { cwd: root })).exitCode, 0);
@@ -182,4 +182,40 @@ test("executes git_commit only after explicit approval", async () => {
   const log = await runGitCommand(["log", "-1", "--pretty=%s"], { cwd: root });
   assert.equal(log.exitCode, 0);
   assert.equal(log.stdout.trim(), "initial commit");
+});
+
+test("executes git_checkout only after explicit approval", async () => {
+  const root = await createRepository();
+  await writeFile(join(root, "example.txt"), "content\n", "utf8");
+  assert.equal((await runGitCommand(["add", "--", "example.txt"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["commit", "-m", "initial"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["branch", "feature/test"], { cwd: root })).exitCode, 0);
+
+  const registry = new ToolRegistry();
+  registry.register(createGitCheckoutTool());
+  let approvalRequest: { tool: string; input: unknown } | undefined;
+
+  const result = await new ToolCaller(registry).execute(
+    { tool: "git_checkout", input: { name: "feature/test" } },
+    {
+      workspaceRoot: root,
+      approval: {
+        async requestApproval(request) {
+          approvalRequest = request;
+          return true;
+        },
+      },
+    },
+  );
+
+  assert.equal(result.tool, "git_checkout");
+  assert.equal(result.error, undefined);
+  assert.deepEqual(approvalRequest, {
+    tool: "git_checkout",
+    input: { name: "feature/test" },
+  });
+
+  const current = await runGitCommand(["branch", "--show-current"], { cwd: root });
+  assert.equal(current.exitCode, 0);
+  assert.equal(current.stdout.trim(), "feature/test");
 });
