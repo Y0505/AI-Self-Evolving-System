@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   createGitBranchesTool,
+  createGitCommitTool,
   createGitDiffTool,
   createGitStageTool,
   createGitStatusTool,
@@ -130,4 +131,14 @@ test("git_stage does not require approval", async () => {
   const staged = await runGitCommand(["diff", "--cached", "--name-only"], { cwd: root });
   assert.match(staged.stdout, /example\.txt/);
   assert.equal(await readFile(join(root, "example.txt"), "utf8"), "content\n");
+});
+
+test("git_commit requires approval and validates the commit message", async () => {
+  const tool = createGitCommitTool();
+
+  assert.equal(tool.requiresApproval, true);
+  await assert.rejects(
+    tool.execute({ message: "   " }, { workspaceRoot: "/workspace" }),
+    /cannot be empty/,
+  );
 });
