@@ -30,6 +30,10 @@ export interface GitCheckoutInput {
   name: string;
 }
 
+export interface GitUnstageInput {
+  paths: string[];
+}
+
 export interface GitMutationResult {
   command: string;
   exitCode: number;
@@ -121,6 +125,30 @@ export const createGitCreateBranchTool = (
   },
 });
 
+function validateGitPaths(paths: string[], operation: string): string[] {
+  if (!Array.isArray(paths) || paths.length === 0) {
+    throw new Error(`Git ${operation} paths cannot be empty`);
+  }
+
+  return paths.map((path) => {
+    if (typeof path !== "string" || !path.trim()) {
+      throw new Error(`Git ${operation} paths must be non-empty strings`);
+    }
+    const trimmed = path.trim();
+    if (isAbsolute(trimmed)) {
+      throw new Error(`Git ${operation} paths must be relative`);
+    }
+    const normalized = normalize(trimmed);
+    if (normalized === ".." || normalized.startsWith(`..${"/"}`) || normalized.startsWith(`..\\`)) {
+      throw new Error(`Git ${operation} path cannot escape the repository`);
+    }
+    if (trimmed.startsWith("-")) {
+      throw new Error(`Git ${operation} path cannot start with '-'`);
+    }
+    return trimmed;
+  });
+}
+
 export const createGitStageTool = (
   options?: GitCommandToolOptions,
 ): Tool<GitStageInput, GitMutationResult> => ({
@@ -128,29 +156,30 @@ export const createGitStageTool = (
   description:
     "Stage explicitly named repository paths for the next commit. This changes only the Git index and is reversible with unstaging.",
   async execute(input: GitStageInput, context: ToolContext) {
-    if (!Array.isArray(input.paths) || input.paths.length === 0) {
-      throw new Error("Git stage paths cannot be empty");
-    }
-
-    const paths = input.paths.map((path) => {
-      if (typeof path !== "string" || !path.trim()) {
-        throw new Error("Git stage paths must be non-empty strings");
-      }
-      const trimmed = path.trim();
-      if (isAbsolute(trimmed)) {
-        throw new Error("Git stage paths must be relative");
-      }
-      const normalized = normalize(trimmed);
-      if (normalized === ".." || normalized.startsWith(`..${"/"}`) || normalized.startsWith(`..\\`)) {
-        throw new Error("Git stage path cannot escape the repository");
-      }
-      if (trimmed.startsWith("-")) {
-        throw new Error("Git stage path cannot start with '-'");
-      }
-      return trimmed;
+    const paths = validateGitPaths(input.paths, "stage");
+    const args = ["add", "--", ...paths];
+    const result = await runGitCommand(args, {
+      cwd: context.workspaceRoot,
+      timeoutMs: options?.timeoutMs,
+      maxOutputLength: options?.maxOutputLength,
     });
 
-    const args = ["add", "--", ...paths];
+    return {
+      command: ["git", ...args].join(" "),
+      ...result,
+    };
+  },
+});
+
+export const createGitUnstageTool = (
+  options?: GitCommandToolOptions,
+): Tool<GitUnstageInput, GitMutationResult> => ({
+  name: "git_unstage",
+  description:
+    "Remove explicitly named repository paths from the Git index while keeping their working tree changes. This is reversible and does not require approval.",
+  async execute(input: GitUnstageInput, context: ToolContext) {
+    const paths = validateGitPaths(input.paths, "unstage");
+    const args = ["restore", "--staged", "--", ...paths];
     const result = await runGitCommand(args, {
       cwd: context.workspaceRoot,
       timeoutMs: options?.timeoutMs,
