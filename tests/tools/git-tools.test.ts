@@ -1,9 +1,14 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createGitBranchesTool, createGitDiffTool, createGitStatusTool } from "../../src/tools/git-tools.js";
+import {
+  createGitBranchesTool,
+  createGitDiffTool,
+  createGitStageTool,
+  createGitStatusTool,
+} from "../../src/tools/git-tools.js";
 import { runGitCommand } from "../../src/git/git-command.js";
 
 async function createRepository(): Promise<string> {
@@ -75,4 +80,54 @@ test("git command output is bounded", async () => {
 
   assert.equal(result.exitCode, 0);
   assert.ok(result.stdout.length <= 100);
+});
+
+test("git_stage stages only explicitly requested paths", async () => {
+  const root = await createRepository();
+  await writeFile(join(root, "one.txt"), "one\n", "utf8");
+  await writeFile(join(root, "two.txt"), "two\n", "utf8");
+
+  const result = await createGitStageTool().execute(
+    { paths: ["one.txt"] },
+    { workspaceRoot: root },
+  );
+
+  assert.equal(result.exitCode, 0);
+  const staged = await runGitCommand(["diff", "--cached", "--name-only"], { cwd: root });
+  assert.equal(staged.exitCode, 0);
+  assert.match(staged.stdout, /one\.txt/);
+  assert.doesNotMatch(staged.stdout, /two\.txt/);
+});
+
+test("git_stage rejects unsafe paths", async () => {
+  const root = await createRepository();
+  const tool = createGitStageTool();
+
+  await assert.rejects(
+    tool.execute({ paths: ["../outside.txt"] }, { workspaceRoot: root }),
+    /cannot escape the repository/,
+  );
+  await assert.rejects(
+    tool.execute({ paths: ["-p"] }, { workspaceRoot: root }),
+    /cannot start with '-'/,
+  );
+  await assert.rejects(
+    tool.execute({ paths: [] }, { workspaceRoot: root }),
+    /cannot be empty/,
+  );
+});
+
+test("git_stage does not require approval", async () => {
+  const root = await createRepository();
+  await writeFile(join(root, "example.txt"), "content\n", "utf8");
+
+  const result = await createGitStageTool().execute(
+    { paths: ["example.txt"] },
+    { workspaceRoot: root },
+  );
+
+  assert.equal(result.exitCode, 0);
+  const staged = await runGitCommand(["diff", "--cached", "--name-only"], { cwd: root });
+  assert.match(staged.stdout, /example\.txt/);
+  assert.equal(await readFile(join(root, "example.txt"), "utf8"), "content\n");
 });
