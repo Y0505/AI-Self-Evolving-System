@@ -49,6 +49,8 @@ test("ProviderAgentModel maps a provider response to a final decision", async ()
   assert.equal(requests[0].repository.root, repository.root);
   assert.match(requests[0].instructions ?? "", /Be concise/);
   assert.match(requests[0].instructions ?? "", /Current agent input: Inspect the repository/);
+  assert.match(requests[0].instructions ?? "", /Available tools: read_file, write_file, remove_file, run_tests/);
+  assert.match(requests[0].instructions ?? "", /run_tests tool accepts/);
   assert.match(requests[0].instructions ?? "", /Tool result history/);
 });
 
