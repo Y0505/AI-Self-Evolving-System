@@ -26,6 +26,10 @@ export interface GitCommitInput {
   message: string;
 }
 
+export interface GitCheckoutInput {
+  name: string;
+}
+
 export interface GitMutationResult {
   command: string;
   exitCode: number;
@@ -147,6 +151,37 @@ export const createGitStageTool = (
     });
 
     const args = ["add", "--", ...paths];
+    const result = await runGitCommand(args, {
+      cwd: context.workspaceRoot,
+      timeoutMs: options?.timeoutMs,
+      maxOutputLength: options?.maxOutputLength,
+    });
+
+    return {
+      command: ["git", ...args].join(" "),
+      ...result,
+    };
+  },
+});
+
+export const createGitCheckoutTool = (
+  options?: GitCommandToolOptions,
+): Tool<GitCheckoutInput, GitMutationResult> => ({
+  name: "git_checkout",
+  description:
+    "Switch the working tree to an existing local Git branch. This can change tracked files and therefore always requires explicit approval.",
+  requiresApproval: true,
+  async execute(input: GitCheckoutInput, context: ToolContext) {
+    if (!input || typeof input.name !== "string" || !input.name.trim()) {
+      throw new Error("Git checkout branch name cannot be empty");
+    }
+
+    const name = input.name.trim();
+    if (name.startsWith("-")) {
+      throw new Error("Git checkout branch name cannot start with '-'");
+    }
+
+    const args = ["checkout", "--", name];
     const result = await runGitCommand(args, {
       cwd: context.workspaceRoot,
       timeoutMs: options?.timeoutMs,
