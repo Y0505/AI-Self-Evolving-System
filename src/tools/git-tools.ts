@@ -13,6 +13,17 @@ export interface GitReadResult {
   stderr: string;
 }
 
+export interface GitBranchInput {
+  name: string;
+}
+
+export interface GitMutationResult {
+  command: string;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
 const GIT_OPTIONS: GitCommandToolOptions = {};
 
 function createGitReadTool(
@@ -67,3 +78,32 @@ export const createGitBranchesTool = (
     ["branch", "--list", "--no-color"],
     options,
   );
+
+export const createGitCreateBranchTool = (
+  options?: GitCommandToolOptions,
+): Tool<GitBranchInput, GitMutationResult> => ({
+  name: "git_create_branch",
+  description:
+    "Create a new local Git branch without checking it out. This changes repository state but does not modify tracked files.",
+  async execute(input: GitBranchInput, context: ToolContext) {
+    if (!input.name.trim()) {
+      throw new Error("Git branch name cannot be empty");
+    }
+    if (input.name.startsWith("-")) {
+      throw new Error("Git branch name cannot start with '-'");
+    }
+
+    const name = input.name.trim();
+    const args = ["branch", "--", name];
+    const result = await runGitCommand(args, {
+      cwd: context.workspaceRoot,
+      timeoutMs: options?.timeoutMs,
+      maxOutputLength: options?.maxOutputLength,
+    });
+
+    return {
+      command: ["git", ...args].join(" "),
+      ...result,
+    };
+  },
+});
