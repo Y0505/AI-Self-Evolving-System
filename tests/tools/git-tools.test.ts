@@ -137,8 +137,15 @@ test("git_stage does not require approval", async () => {
 
 test("git_unstage removes only requested paths from the index", async () => {
   const root = await createRepository();
+  await runGitCommand(["config", "user.email", "test@example.com"], { cwd: root });
+  await runGitCommand(["config", "user.name", "Test User"], { cwd: root });
   await writeFile(join(root, "one.txt"), "one\n", "utf8");
   await writeFile(join(root, "two.txt"), "two\n", "utf8");
+  assert.equal((await runGitCommand(["add", "--", "one.txt", "two.txt"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["commit", "-m", "initial"], { cwd: root })).exitCode, 0);
+
+  await writeFile(join(root, "one.txt"), "one changed\n", "utf8");
+  await writeFile(join(root, "two.txt"), "two changed\n", "utf8");
   assert.equal((await runGitCommand(["add", "--", "one.txt", "two.txt"], { cwd: root })).exitCode, 0);
 
   const result = await createGitUnstageTool().execute(
@@ -151,7 +158,7 @@ test("git_unstage removes only requested paths from the index", async () => {
   assert.equal(staged.exitCode, 0);
   assert.doesNotMatch(staged.stdout, /one\.txt/);
   assert.match(staged.stdout, /two\.txt/);
-  assert.equal(await readFile(join(root, "one.txt"), "utf8"), "one\n");
+  assert.equal(await readFile(join(root, "one.txt"), "utf8"), "one changed\n");
 });
 
 test("git_unstage rejects unsafe paths and requires no approval", async () => {
