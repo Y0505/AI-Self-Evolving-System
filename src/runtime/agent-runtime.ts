@@ -12,6 +12,11 @@ import {
   createWriteFileTool,
 } from "../tools/file-tools.js";
 import { createRunTestsTool } from "../tools/test-runner.js";
+import {
+  createGitBranchesTool,
+  createGitDiffTool,
+  createGitStatusTool,
+} from "../tools/git-tools.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -47,6 +52,9 @@ export class AgentRuntime {
     registry.register(createWriteFileTool(workspace));
     registry.register(createRemoveFileTool(workspace));
     registry.register(createRunTestsTool(this.testTimeoutMs));
+    registry.register(createGitStatusTool());
+    registry.register(createGitDiffTool());
+    registry.register(createGitBranchesTool());
 
     const model = new ProviderAgentModel({
       provider: this.provider,

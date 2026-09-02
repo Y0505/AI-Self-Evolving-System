@@ -44,8 +44,9 @@ function buildInstructions(
   return [
     instructions,
     `Current agent input: ${input}`,
-    "Available tools: read_file, write_file, remove_file, run_tests.",
+    "Available tools: read_file, write_file, remove_file, run_tests, git_status, git_diff, git_branches.",
     'The run_tests tool accepts {"profile":"test"} or {"profile":"build"}.',
+    "The git_status, git_diff, and git_branches tools take an empty object and are read-only.",
     "Respond with JSON only.",
     "Choose exactly one action: a tool_call or a final response.",
     'Tool call format: {"type":"tool_call","toolCall":{"tool":"tool_name","input":{}}}',
