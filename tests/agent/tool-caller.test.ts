@@ -49,3 +49,92 @@ test("captures tool execution failures without throwing", async () => {
 
   assert.deepEqual(result, { tool: "failing", error: "expected failure" });
 });
+
+test("blocks approval-required tools when no approval service is configured", async () => {
+  const registry = new ToolRegistry();
+  let executed = false;
+  registry.register({
+    name: "sensitive",
+    description: "Sensitive action",
+    requiresApproval: true,
+    async execute() {
+      executed = true;
+      return "done";
+    },
+  });
+
+  const result = await new ToolCaller(registry).execute(
+    { tool: "sensitive", input: { value: "commit" } },
+    context,
+  );
+
+  assert.deepEqual(result, {
+    tool: "sensitive",
+    error: "Approval required for tool: sensitive",
+  });
+  assert.equal(executed, false);
+});
+
+test("requests approval before executing approval-required tools", async () => {
+  const registry = new ToolRegistry();
+  const requests: Array<{ tool: string; input: unknown }> = [];
+  let executed = false;
+  registry.register({
+    name: "sensitive",
+    description: "Sensitive action",
+    requiresApproval: true,
+    async execute() {
+      executed = true;
+      return "done";
+    },
+  });
+
+  const result = await new ToolCaller(registry).execute(
+    { tool: "sensitive", input: { value: "commit" } },
+    {
+      workspaceRoot: "/workspace",
+      approval: {
+        async requestApproval(request) {
+          requests.push(request);
+          return true;
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(result, { tool: "sensitive", output: "done" });
+  assert.deepEqual(requests, [{ tool: "sensitive", input: { value: "commit" } }]);
+  assert.equal(executed, true);
+});
+
+test("does not execute approval-required tools when approval is denied", async () => {
+  const registry = new ToolRegistry();
+  let executed = false;
+  registry.register({
+    name: "sensitive",
+    description: "Sensitive action",
+    requiresApproval: true,
+    async execute() {
+      executed = true;
+      return "done";
+    },
+  });
+
+  const result = await new ToolCaller(registry).execute(
+    { tool: "sensitive", input: {} },
+    {
+      workspaceRoot: "/workspace",
+      approval: {
+        async requestApproval() {
+          return false;
+        },
+      },
+    },
+  );
+
+  assert.deepEqual(result, {
+    tool: "sensitive",
+    error: "Tool execution not approved: sensitive",
+  });
+  assert.equal(executed, false);
+});
