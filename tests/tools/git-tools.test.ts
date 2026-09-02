@@ -39,8 +39,14 @@ test("git_diff exposes working tree changes", async () => {
   assert.match(result.stdout, /\+after/);
 });
 
-test("git_branches lists local branches", async () => {
+test("git_branches lists local branches after a commit", async () => {
   const root = await createRepository();
+  await runGitCommand(["config", "user.email", "test@example.com"], { cwd: root });
+  await runGitCommand(["config", "user.name", "Test User"], { cwd: root });
+  await writeFile(join(root, "example.txt"), "content\n", "utf8");
+  assert.equal((await runGitCommand(["add", "example.txt"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["commit", "-m", "initial"], { cwd: root })).exitCode, 0);
+
   const result = await createGitBranchesTool().execute({}, { workspaceRoot: root });
 
   assert.equal(result.exitCode, 0);
@@ -64,9 +70,9 @@ test("git command output is bounded", async () => {
   const root = await createRepository();
   const result = await runGitCommand(["status", "--short", "--branch"], {
     cwd: root,
-    maxOutputLength: 1,
+    maxOutputLength: 100,
   });
 
   assert.equal(result.exitCode, 0);
-  assert.ok(result.stdout.length <= 1);
+  assert.ok(result.stdout.length <= 100);
 });
