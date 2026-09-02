@@ -17,6 +17,7 @@ import {
   createGitBranchesTool,
   createGitCreateBranchTool,
   createGitDiffTool,
+  createGitStageTool,
   createGitStatusTool,
 } from "../tools/git-tools.js";
 
@@ -61,6 +62,7 @@ export class AgentRuntime {
     registry.register(createGitDiffTool());
     registry.register(createGitBranchesTool());
     registry.register(createGitCreateBranchTool());
+    registry.register(createGitStageTool());
 
     const model = new ProviderAgentModel({
       provider: this.provider,
