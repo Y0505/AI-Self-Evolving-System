@@ -1,3 +1,4 @@
+import { isAbsolute, normalize } from "node:path";
 import type { Tool, ToolContext } from "./tool.js";
 import { runGitCommand } from "../git/git-command.js";
 
@@ -15,6 +16,10 @@ export interface GitReadResult {
 
 export interface GitBranchInput {
   name: string;
+}
+
+export interface GitStageInput {
+  paths: string[];
 }
 
 export interface GitMutationResult {
@@ -95,6 +100,49 @@ export const createGitCreateBranchTool = (
 
     const name = input.name.trim();
     const args = ["branch", "--", name];
+    const result = await runGitCommand(args, {
+      cwd: context.workspaceRoot,
+      timeoutMs: options?.timeoutMs,
+      maxOutputLength: options?.maxOutputLength,
+    });
+
+    return {
+      command: ["git", ...args].join(" "),
+      ...result,
+    };
+  },
+});
+
+export const createGitStageTool = (
+  options?: GitCommandToolOptions,
+): Tool<GitStageInput, GitMutationResult> => ({
+  name: "git_stage",
+  description:
+    "Stage explicitly named repository paths for the next commit. This changes only the Git index and is reversible with unstaging.",
+  async execute(input: GitStageInput, context: ToolContext) {
+    if (!Array.isArray(input.paths) || input.paths.length === 0) {
+      throw new Error("Git stage paths cannot be empty");
+    }
+
+    const paths = input.paths.map((path) => {
+      if (typeof path !== "string" || !path.trim()) {
+        throw new Error("Git stage paths must be non-empty strings");
+      }
+      const trimmed = path.trim();
+      if (isAbsolute(trimmed)) {
+        throw new Error("Git stage paths must be relative");
+      }
+      const normalized = normalize(trimmed);
+      if (normalized === ".." || normalized.startsWith(`..${"/"}`) || normalized.startsWith(`..\\`)) {
+        throw new Error("Git stage path cannot escape the repository");
+      }
+      if (trimmed.startsWith("-")) {
+        throw new Error("Git stage path cannot start with '-'");
+      }
+      return trimmed;
+    });
+
+    const args = ["add", "--", ...paths];
     const result = await runGitCommand(args, {
       cwd: context.workspaceRoot,
       timeoutMs: options?.timeoutMs,
