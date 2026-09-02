@@ -21,6 +21,7 @@ import {
   createGitDiffTool,
   createGitStageTool,
   createGitStatusTool,
+  createGitUnstageTool,
 } from "../tools/git-tools.js";
 
 export interface AgentRuntimeOptions {
@@ -65,6 +66,7 @@ export class AgentRuntime {
     registry.register(createGitBranchesTool());
     registry.register(createGitCreateBranchTool());
     registry.register(createGitStageTool());
+    registry.register(createGitUnstageTool());
     registry.register(createGitCheckoutTool());
     registry.register(createGitCommitTool());
 
