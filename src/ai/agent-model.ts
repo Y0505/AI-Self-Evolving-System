@@ -24,11 +24,11 @@ export class ProviderAgentModel implements AgentModel {
     this.instructions = options.instructions;
   }
 
-  async decide(_input: string, history: ToolCallResult[]): Promise<AgentDecision> {
+  async decide(input: string, history: ToolCallResult[]): Promise<AgentDecision> {
     const response = await this.provider.generate({
       task: this.task,
       repository: this.repository,
-      instructions: buildInstructions(this.instructions, history),
+      instructions: buildInstructions(this.instructions, input, history),
     });
 
     return parseAgentDecision(response.content);
@@ -37,11 +37,13 @@ export class ProviderAgentModel implements AgentModel {
 
 function buildInstructions(
   instructions: string | undefined,
+  input: string,
   history: ToolCallResult[],
 ): string {
   const historyText = JSON.stringify(history);
   return [
     instructions,
+    `Current agent input: ${input}`,
     "Respond with JSON only.",
     "Choose exactly one action: a tool_call or a final response.",
     'Tool call format: {"type":"tool_call","toolCall":{"tool":"tool_name","input":{}}}',
