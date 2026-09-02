@@ -11,12 +11,14 @@ import {
   createRemoveFileTool,
   createWriteFileTool,
 } from "../tools/file-tools.js";
+import { createRunTestsTool } from "../tools/test-runner.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
   provider: AIProvider;
   instructions?: string;
   maxToolCalls?: number;
+  testTimeoutMs?: number;
 }
 
 export class AgentRuntime {
@@ -24,6 +26,7 @@ export class AgentRuntime {
   private readonly provider: AIProvider;
   private readonly instructions?: string;
   private readonly maxToolCalls?: number;
+  private readonly testTimeoutMs?: number;
   private readonly scanner: RepositoryScanner;
 
   constructor(options: AgentRuntimeOptions) {
@@ -31,6 +34,7 @@ export class AgentRuntime {
     this.provider = options.provider;
     this.instructions = options.instructions;
     this.maxToolCalls = options.maxToolCalls;
+    this.testTimeoutMs = options.testTimeoutMs;
     this.scanner = new RepositoryScanner();
   }
 
@@ -42,6 +46,7 @@ export class AgentRuntime {
     registry.register(createReadFileTool(workspace));
     registry.register(createWriteFileTool(workspace));
     registry.register(createRemoveFileTool(workspace));
+    registry.register(createRunTestsTool(this.testTimeoutMs));
 
     const model = new ProviderAgentModel({
       provider: this.provider,
