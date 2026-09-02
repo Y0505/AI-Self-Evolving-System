@@ -22,6 +22,10 @@ export interface GitStageInput {
   paths: string[];
 }
 
+export interface GitCommitInput {
+  message: string;
+}
+
 export interface GitMutationResult {
   command: string;
   exitCode: number;
@@ -143,6 +147,33 @@ export const createGitStageTool = (
     });
 
     const args = ["add", "--", ...paths];
+    const result = await runGitCommand(args, {
+      cwd: context.workspaceRoot,
+      timeoutMs: options?.timeoutMs,
+      maxOutputLength: options?.maxOutputLength,
+    });
+
+    return {
+      command: ["git", ...args].join(" "),
+      ...result,
+    };
+  },
+});
+
+export const createGitCommitTool = (
+  options?: GitCommandToolOptions,
+): Tool<GitCommitInput, GitMutationResult> => ({
+  name: "git_commit",
+  description:
+    "Create a Git commit from the currently staged changes. This is a durable repository mutation and requires explicit approval.",
+  requiresApproval: true,
+  async execute(input: GitCommitInput, context: ToolContext) {
+    if (!input || typeof input.message !== "string" || !input.message.trim()) {
+      throw new Error("Git commit message cannot be empty");
+    }
+
+    const message = input.message.trim();
+    const args = ["commit", "-m", message];
     const result = await runGitCommand(args, {
       cwd: context.workspaceRoot,
       timeoutMs: options?.timeoutMs,
