@@ -1,9 +1,22 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { ToolCaller } from "../../src/agent/tool-caller.js";
 import { ToolRegistry } from "../../src/tools/registry.js";
+import { createGitCommitTool } from "../../src/tools/git-tools.js";
+import { runGitCommand } from "../../src/git/git-command.js";
 
 const context = { workspaceRoot: "/workspace" };
+
+async function createRepository(): Promise<string> {
+  const root = await mkdtemp(join(tmpdir(), "ai-self-evolving-commit-"));
+  assert.equal((await runGitCommand(["init"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["config", "user.email", "test@example.com"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["config", "user.name", "Test User"], { cwd: root })).exitCode, 0);
+  return root;
+}
 
 test("executes a registered tool and returns its output", async () => {
   const registry = new ToolRegistry();
@@ -137,4 +150,36 @@ test("does not execute approval-required tools when approval is denied", async (
     error: "Tool execution not approved: sensitive",
   });
   assert.equal(executed, false);
+});
+
+test("executes git_commit only after explicit approval", async () => {
+  const root = await createRepository();
+  await writeFile(join(root, "example.txt"), "content\n", "utf8");
+  assert.equal((await runGitCommand(["add", "--", "example.txt"], { cwd: root })).exitCode, 0);
+
+  const registry = new ToolRegistry();
+  registry.register(createGitCommitTool());
+  let approvalRequest: { tool: string; input: unknown } | undefined;
+
+  const result = await new ToolCaller(registry).execute(
+    { tool: "git_commit", input: { message: "initial commit" } },
+    {
+      workspaceRoot: root,
+      approval: {
+        async requestApproval(request) {
+          approvalRequest = request;
+          return true;
+        },
+      },
+    },
+  );
+
+  assert.equal(result.tool, "git_commit");
+  assert.equal(result.error, undefined);
+  assert.equal(approvalRequest?.tool, "git_commit");
+  assert.deepEqual(approvalRequest?.input, { message: "initial commit" });
+
+  const log = await runGitCommand(["log", "-1", "--pretty=%s"], { cwd: root });
+  assert.equal(log.exitCode, 0);
+  assert.equal(log.stdout.trim(), "initial commit");
 });
