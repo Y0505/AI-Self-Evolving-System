@@ -37,7 +37,7 @@ export const createRunTestsTool = (
 });
 
 function validateInput(input: RunTestsInput): void {
-  if (!input || !(input.profile in commands)) {
+  if (!input || !Object.hasOwn(commands, input.profile)) {
     throw new Error("Unsupported test profile. Use \"test\" or \"build\".");
   }
 }
