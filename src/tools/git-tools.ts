@@ -181,7 +181,7 @@ export const createGitCheckoutTool = (
       throw new Error("Git checkout branch name cannot start with '-'");
     }
 
-    const args = ["checkout", "--", name];
+    const args = ["checkout", name];
     const result = await runGitCommand(args, {
       cwd: context.workspaceRoot,
       timeoutMs: options?.timeoutMs,
