@@ -6,6 +6,7 @@ import type { Task } from "../core/task.js";
 import { RepositoryScanner } from "../repository/scanner.js";
 import { RepositoryWorkspace } from "../repository/workspace.js";
 import { ToolRegistry } from "../tools/registry.js";
+import type { ToolApprovalService } from "../tools/approval.js";
 import {
   createReadFileTool,
   createRemoveFileTool,
@@ -25,6 +26,7 @@ export interface AgentRuntimeOptions {
   instructions?: string;
   maxToolCalls?: number;
   testTimeoutMs?: number;
+  approval?: ToolApprovalService;
 }
 
 export class AgentRuntime {
@@ -33,6 +35,7 @@ export class AgentRuntime {
   private readonly instructions?: string;
   private readonly maxToolCalls?: number;
   private readonly testTimeoutMs?: number;
+  private readonly approval?: ToolApprovalService;
   private readonly scanner: RepositoryScanner;
 
   constructor(options: AgentRuntimeOptions) {
@@ -41,6 +44,7 @@ export class AgentRuntime {
     this.instructions = options.instructions;
     this.maxToolCalls = options.maxToolCalls;
     this.testTimeoutMs = options.testTimeoutMs;
+    this.approval = options.approval;
     this.scanner = new RepositoryScanner();
   }
 
@@ -68,6 +72,9 @@ export class AgentRuntime {
       maxToolCalls: this.maxToolCalls,
     });
 
-    return agent.run(input, { workspaceRoot: this.repositoryRoot });
+    return agent.run(input, {
+      workspaceRoot: this.repositoryRoot,
+      approval: this.approval,
+    });
   }
 }
