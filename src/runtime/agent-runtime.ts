@@ -19,6 +19,7 @@ import {
   createGitCommitTool,
   createGitCreateBranchTool,
   createGitDiffTool,
+  createGitPushTool,
   createGitStageTool,
   createGitStatusTool,
   createGitUnstageTool,
@@ -69,6 +70,7 @@ export class AgentRuntime {
     registry.register(createGitUnstageTool());
     registry.register(createGitCheckoutTool());
     registry.register(createGitCommitTool());
+    registry.register(createGitPushTool());
 
     const model = new ProviderAgentModel({
       provider: this.provider,
