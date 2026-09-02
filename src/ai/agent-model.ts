@@ -44,11 +44,12 @@ function buildInstructions(
   return [
     instructions,
     `Current agent input: ${input}`,
-    "Available tools: read_file, write_file, remove_file, run_tests, git_status, git_diff, git_branches, git_create_branch, git_stage, git_checkout, git_commit.",
+    "Available tools: read_file, write_file, remove_file, run_tests, git_status, git_diff, git_branches, git_create_branch, git_stage, git_unstage, git_checkout, git_commit.",
     'The run_tests tool accepts {"profile":"test"} or {"profile":"build"}.',
     "The git_status, git_diff, and git_branches tools take an empty object and are read-only.",
     'The git_create_branch tool accepts {"name":"branch/name"}; it creates a local branch without checking it out and does not modify tracked files.',
     'The git_stage tool accepts {"paths":["path/to/file"]}; it stages only explicitly named relative paths and does not require approval.',
+    'The git_unstage tool accepts {"paths":["path/to/file"]}; it removes only explicitly named relative paths from the Git index, keeps working tree changes, and does not require approval.',
     'The git_checkout tool accepts {"name":"branch/name"}; it switches to an existing local branch and always requires explicit approval because it can change tracked files in the working tree.',
     'The git_commit tool accepts {"message":"commit message"}; it creates a durable Git commit and always requires explicit approval before execution.',
     "Git mutation tools must remain narrowly scoped; do not assume arbitrary Git commands are available.",
