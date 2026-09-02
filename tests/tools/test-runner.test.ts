@@ -52,11 +52,11 @@ test("run_tests reports validation failures without throwing", async () => {
   assert.match(result.stderr, /tests failed/);
 });
 
-test("run_tests rejects arbitrary profiles", async () => {
-  const root = await createPackage({ test: "node -e \"process.exit(0)\"" });
+test("run_tests rejects arbitrary profiles", () => {
+  const root = "unused";
   const tool = createRunTestsTool();
 
-  await assert.rejects(
+  assert.throws(
     () => tool.execute({ profile: "npm install" as never }, { workspaceRoot: root }),
     /Unsupported test profile/,
   );
