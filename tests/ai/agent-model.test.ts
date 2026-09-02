@@ -48,6 +48,7 @@ test("ProviderAgentModel maps a provider response to a final decision", async ()
   assert.equal(requests[0].task.id, task.id);
   assert.equal(requests[0].repository.root, repository.root);
   assert.match(requests[0].instructions ?? "", /Be concise/);
+  assert.match(requests[0].instructions ?? "", /Current agent input: Inspect the repository/);
   assert.match(requests[0].instructions ?? "", /Tool result history/);
 });
 
@@ -79,6 +80,7 @@ test("ProviderAgentModel includes tool history in the next provider request", as
 
   await model.decide("Continue", [{ tool: "read_file", output: "hello" }]);
 
+  assert.match(requests[0].instructions ?? "", /Current agent input: Continue/);
   assert.match(requests[0].instructions ?? "", /read_file/);
   assert.match(requests[0].instructions ?? "", /hello/);
 });
