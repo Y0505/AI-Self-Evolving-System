@@ -10,6 +10,7 @@ import {
   createGitDiffTool,
   createGitStageTool,
   createGitStatusTool,
+  createGitUnstageTool,
 } from "../../src/tools/git-tools.js";
 import { runGitCommand } from "../../src/git/git-command.js";
 
@@ -132,6 +133,44 @@ test("git_stage does not require approval", async () => {
   const staged = await runGitCommand(["diff", "--cached", "--name-only"], { cwd: root });
   assert.match(staged.stdout, /example\.txt/);
   assert.equal(await readFile(join(root, "example.txt"), "utf8"), "content\n");
+});
+
+test("git_unstage removes only requested paths from the index", async () => {
+  const root = await createRepository();
+  await writeFile(join(root, "one.txt"), "one\n", "utf8");
+  await writeFile(join(root, "two.txt"), "two\n", "utf8");
+  assert.equal((await runGitCommand(["add", "--", "one.txt", "two.txt"], { cwd: root })).exitCode, 0);
+
+  const result = await createGitUnstageTool().execute(
+    { paths: ["one.txt"] },
+    { workspaceRoot: root },
+  );
+
+  assert.equal(result.exitCode, 0);
+  const staged = await runGitCommand(["diff", "--cached", "--name-only"], { cwd: root });
+  assert.equal(staged.exitCode, 0);
+  assert.doesNotMatch(staged.stdout, /one\.txt/);
+  assert.match(staged.stdout, /two\.txt/);
+  assert.equal(await readFile(join(root, "one.txt"), "utf8"), "one\n");
+});
+
+test("git_unstage rejects unsafe paths and requires no approval", async () => {
+  const root = await createRepository();
+  const tool = createGitUnstageTool();
+
+  assert.equal(tool.requiresApproval, undefined);
+  await assert.rejects(
+    tool.execute({ paths: ["../outside.txt"] }, { workspaceRoot: root }),
+    /cannot escape the repository/,
+  );
+  await assert.rejects(
+    tool.execute({ paths: ["-p"] }, { workspaceRoot: root }),
+    /cannot start with '-'/,
+  );
+  await assert.rejects(
+    tool.execute({ paths: [] }, { workspaceRoot: root }),
+    /cannot be empty/,
+  );
 });
 
 test("git_commit requires approval and validates the commit message", async () => {
