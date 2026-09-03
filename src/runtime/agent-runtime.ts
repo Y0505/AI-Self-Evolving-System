@@ -21,6 +21,8 @@ import { createGitHubPullRequestReviewsTool } from "../tools/github-review-tools
 import type { PullRequestMergeClient } from "../github/pull-request-merge-client.js";
 import { StrictMergeGate } from "../github/strict-merge-gate.js";
 import { createGitHubMergePullRequestTool } from "../tools/github-merge-tools.js";
+import type { DeploymentClient } from "../deployment/deployment-client.js";
+import { createDeployTool } from "../tools/deployment-tools.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -34,6 +36,7 @@ export interface AgentRuntimeOptions {
   pullRequestChecksClient?: PullRequestChecksClient;
   pullRequestReviewsClient?: PullRequestReviewsClient;
   pullRequestMergeClient?: PullRequestMergeClient;
+  deploymentClient?: DeploymentClient;
 }
 
 export class AgentRuntime {
@@ -48,6 +51,7 @@ export class AgentRuntime {
   private readonly pullRequestChecksClient?: PullRequestChecksClient;
   private readonly pullRequestReviewsClient?: PullRequestReviewsClient;
   private readonly pullRequestMergeClient?: PullRequestMergeClient;
+  private readonly deploymentClient?: DeploymentClient;
   private readonly scanner: RepositoryScanner;
 
   constructor(options: AgentRuntimeOptions) {
@@ -62,6 +66,7 @@ export class AgentRuntime {
     this.pullRequestChecksClient = options.pullRequestChecksClient;
     this.pullRequestReviewsClient = options.pullRequestReviewsClient;
     this.pullRequestMergeClient = options.pullRequestMergeClient;
+    this.deploymentClient = options.deploymentClient;
     this.scanner = new RepositoryScanner();
   }
 
@@ -96,6 +101,7 @@ export class AgentRuntime {
       });
       registry.register(createGitHubMergePullRequestTool(gate));
     }
+    if (this.deploymentClient) registry.register(createDeployTool(this.deploymentClient));
 
     const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions });
     const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
