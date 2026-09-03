@@ -23,6 +23,8 @@ import { StrictMergeGate } from "../github/strict-merge-gate.js";
 import { createGitHubMergePullRequestTool } from "../tools/github-merge-tools.js";
 import type { DeploymentClient } from "../deployment/deployment-client.js";
 import { createDeployTool } from "../tools/deployment-tools.js";
+import type { DeploymentStatusClient } from "../deployment/deployment-status-client.js";
+import { createDeploymentStatusTool } from "../tools/deployment-status-tools.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -37,6 +39,7 @@ export interface AgentRuntimeOptions {
   pullRequestReviewsClient?: PullRequestReviewsClient;
   pullRequestMergeClient?: PullRequestMergeClient;
   deploymentClient?: DeploymentClient;
+  deploymentStatusClient?: DeploymentStatusClient;
 }
 
 export class AgentRuntime {
@@ -52,6 +55,7 @@ export class AgentRuntime {
   private readonly pullRequestReviewsClient?: PullRequestReviewsClient;
   private readonly pullRequestMergeClient?: PullRequestMergeClient;
   private readonly deploymentClient?: DeploymentClient;
+  private readonly deploymentStatusClient?: DeploymentStatusClient;
   private readonly scanner: RepositoryScanner;
 
   constructor(options: AgentRuntimeOptions) {
@@ -67,6 +71,7 @@ export class AgentRuntime {
     this.pullRequestReviewsClient = options.pullRequestReviewsClient;
     this.pullRequestMergeClient = options.pullRequestMergeClient;
     this.deploymentClient = options.deploymentClient;
+    this.deploymentStatusClient = options.deploymentStatusClient;
     this.scanner = new RepositoryScanner();
   }
 
@@ -102,6 +107,7 @@ export class AgentRuntime {
       registry.register(createGitHubMergePullRequestTool(gate));
     }
     if (this.deploymentClient) registry.register(createDeployTool(this.deploymentClient));
+    if (this.deploymentStatusClient) registry.register(createDeploymentStatusTool(this.deploymentStatusClient));
 
     const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions });
     const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
