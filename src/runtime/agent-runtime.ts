@@ -16,6 +16,8 @@ import type { PullRequestStatusClient } from "../github/pull-request-status-clie
 import { createGitHubPullRequestStatusTool } from "../tools/github-status-tools.js";
 import type { PullRequestChecksClient } from "../github/pull-request-checks-client.js";
 import { createGitHubPullRequestChecksTool } from "../tools/github-checks-tools.js";
+import type { PullRequestReviewsClient } from "../github/pull-request-reviews-client.js";
+import { createGitHubPullRequestReviewsTool } from "../tools/github-review-tools.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -27,6 +29,7 @@ export interface AgentRuntimeOptions {
   pullRequestClient?: PullRequestClient;
   pullRequestStatusClient?: PullRequestStatusClient;
   pullRequestChecksClient?: PullRequestChecksClient;
+  pullRequestReviewsClient?: PullRequestReviewsClient;
 }
 
 export class AgentRuntime {
@@ -39,6 +42,7 @@ export class AgentRuntime {
   private readonly pullRequestClient?: PullRequestClient;
   private readonly pullRequestStatusClient?: PullRequestStatusClient;
   private readonly pullRequestChecksClient?: PullRequestChecksClient;
+  private readonly pullRequestReviewsClient?: PullRequestReviewsClient;
   private readonly scanner: RepositoryScanner;
 
   constructor(options: AgentRuntimeOptions) {
@@ -51,6 +55,7 @@ export class AgentRuntime {
     this.pullRequestClient = options.pullRequestClient;
     this.pullRequestStatusClient = options.pullRequestStatusClient;
     this.pullRequestChecksClient = options.pullRequestChecksClient;
+    this.pullRequestReviewsClient = options.pullRequestReviewsClient;
     this.scanner = new RepositoryScanner();
   }
 
@@ -75,6 +80,7 @@ export class AgentRuntime {
     if (this.pullRequestClient) registry.register(createGitHubPullRequestTool(this.pullRequestClient));
     if (this.pullRequestStatusClient) registry.register(createGitHubPullRequestStatusTool(this.pullRequestStatusClient));
     if (this.pullRequestChecksClient) registry.register(createGitHubPullRequestChecksTool(this.pullRequestChecksClient));
+    if (this.pullRequestReviewsClient) registry.register(createGitHubPullRequestReviewsTool(this.pullRequestReviewsClient));
 
     const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions });
     const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
