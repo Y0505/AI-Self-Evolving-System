@@ -9,6 +9,7 @@ export interface PullRequestStatusResult {
   state: "open" | "closed";
   merged: boolean;
   mergeable: boolean | null;
+  headSha: string;
 }
 
 export interface PullRequestStatusClient {
@@ -39,23 +40,14 @@ export class GitHubPullRequestStatusClient implements PullRequestStatusClient {
 
     const response = await this.fetchImpl(
       `${this.apiBaseUrl}/repos/${encodeURIComponent(request.owner)}/${encodeURIComponent(request.repository)}/pulls/${request.number}`,
-      {
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: `Bearer ${this.token}`,
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      },
+      { headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${this.token}`, "X-GitHub-Api-Version": "2022-11-28" } },
     );
     if (!response.ok) throw new Error(`GitHub pull request lookup failed with HTTP ${response.status}`);
 
     const payload = (await response.json()) as {
-      number?: number;
-      state?: string;
-      merged?: boolean;
-      mergeable?: boolean | null;
+      number?: number; state?: string; merged?: boolean; mergeable?: boolean | null; head?: { sha?: string };
     };
-    if (!payload.number || !payload.state || typeof payload.merged !== "boolean") {
+    if (!payload.number || !payload.state || typeof payload.merged !== "boolean" || !payload.head?.sha) {
       throw new Error("GitHub returned an incomplete pull request response");
     }
 
@@ -64,6 +56,7 @@ export class GitHubPullRequestStatusClient implements PullRequestStatusClient {
       state: payload.state === "open" ? "open" : "closed",
       merged: payload.merged,
       mergeable: payload.mergeable ?? null,
+      headSha: payload.head.sha,
     };
   }
 }

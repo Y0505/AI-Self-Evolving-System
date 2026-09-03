@@ -18,6 +18,9 @@ import type { PullRequestChecksClient } from "../github/pull-request-checks-clie
 import { createGitHubPullRequestChecksTool } from "../tools/github-checks-tools.js";
 import type { PullRequestReviewsClient } from "../github/pull-request-reviews-client.js";
 import { createGitHubPullRequestReviewsTool } from "../tools/github-review-tools.js";
+import type { PullRequestMergeClient } from "../github/pull-request-merge-client.js";
+import { StrictMergeGate } from "../github/strict-merge-gate.js";
+import { createGitHubMergePullRequestTool } from "../tools/github-merge-tools.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -30,6 +33,7 @@ export interface AgentRuntimeOptions {
   pullRequestStatusClient?: PullRequestStatusClient;
   pullRequestChecksClient?: PullRequestChecksClient;
   pullRequestReviewsClient?: PullRequestReviewsClient;
+  pullRequestMergeClient?: PullRequestMergeClient;
 }
 
 export class AgentRuntime {
@@ -43,6 +47,7 @@ export class AgentRuntime {
   private readonly pullRequestStatusClient?: PullRequestStatusClient;
   private readonly pullRequestChecksClient?: PullRequestChecksClient;
   private readonly pullRequestReviewsClient?: PullRequestReviewsClient;
+  private readonly pullRequestMergeClient?: PullRequestMergeClient;
   private readonly scanner: RepositoryScanner;
 
   constructor(options: AgentRuntimeOptions) {
@@ -56,6 +61,7 @@ export class AgentRuntime {
     this.pullRequestStatusClient = options.pullRequestStatusClient;
     this.pullRequestChecksClient = options.pullRequestChecksClient;
     this.pullRequestReviewsClient = options.pullRequestReviewsClient;
+    this.pullRequestMergeClient = options.pullRequestMergeClient;
     this.scanner = new RepositoryScanner();
   }
 
@@ -81,6 +87,15 @@ export class AgentRuntime {
     if (this.pullRequestStatusClient) registry.register(createGitHubPullRequestStatusTool(this.pullRequestStatusClient));
     if (this.pullRequestChecksClient) registry.register(createGitHubPullRequestChecksTool(this.pullRequestChecksClient));
     if (this.pullRequestReviewsClient) registry.register(createGitHubPullRequestReviewsTool(this.pullRequestReviewsClient));
+    if (this.pullRequestStatusClient && this.pullRequestChecksClient && this.pullRequestReviewsClient && this.pullRequestMergeClient) {
+      const gate = new StrictMergeGate({
+        statusClient: this.pullRequestStatusClient,
+        checksClient: this.pullRequestChecksClient,
+        reviewsClient: this.pullRequestReviewsClient,
+        mergeClient: this.pullRequestMergeClient,
+      });
+      registry.register(createGitHubMergePullRequestTool(gate));
+    }
 
     const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions });
     const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
