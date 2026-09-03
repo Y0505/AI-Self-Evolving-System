@@ -47,13 +47,24 @@ export class StrictMergeGate {
   }
 
   async merge(request: StrictMergeGateRequest): Promise<PullRequestMergeResult> {
-    const gate = await this.evaluate(request);
-    if (gate.status !== "ready") throw new Error(`Strict merge gate blocked: ${gate.reasons.join("; ")}`);
+    const initialGate = await this.evaluate(request);
+    if (initialGate.status !== "ready") {
+      throw new Error(`Strict merge gate blocked: ${initialGate.reasons.join("; ")}`);
+    }
+
+    // Re-check immediately before the mutation. The merge API also receives
+    // the verified SHA so a concurrent head change is rejected by GitHub.
+    const finalGate = await this.evaluate(request);
+    if (finalGate.status !== "ready" || finalGate.headSha === null) {
+      const reasons = finalGate.reasons.length > 0 ? finalGate.reasons.join("; ") : "Pull request head SHA is unavailable";
+      throw new Error(`Strict merge gate blocked: ${reasons}`);
+    }
+
     return this.dependencies.mergeClient.merge({
       owner: request.owner.trim(),
       repository: request.repository.trim(),
       number: request.number,
-      expectedHeadSha: request.expectedHeadSha.trim(),
+      expectedHeadSha: finalGate.headSha,
     });
   }
 
