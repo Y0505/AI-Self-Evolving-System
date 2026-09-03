@@ -8,11 +8,14 @@ import {
   createGitCheckoutTool,
   createGitCommitTool,
   createGitDiffTool,
+  createGitPushTool,
   createGitStageTool,
   createGitStatusTool,
   createGitUnstageTool,
 } from "../../src/tools/git-tools.js";
 import { runGitCommand } from "../../src/git/git-command.js";
+import { ToolCaller } from "../../src/agent/tool-caller.js";
+import { ToolRegistry } from "../../src/tools/registry.js";
 
 async function createRepository(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "ai-self-evolving-git-"));
@@ -220,4 +223,63 @@ test("git_checkout rejects unsafe branch names", async () => {
     tool.execute({ name: "-b" }, { workspaceRoot: root }),
     /cannot start with '-'/,
   );
+});
+
+test("git_push requires approval and pushes only the current branch to origin", async () => {
+  const root = await createRepository();
+  const remote = await mkdtemp(join(tmpdir(), "ai-self-evolving-remote-"));
+  assert.equal((await runGitCommand(["init", "--bare"], { cwd: remote })).exitCode, 0);
+  await runGitCommand(["config", "user.email", "test@example.com"], { cwd: root });
+  await runGitCommand(["config", "user.name", "Test User"], { cwd: root });
+  await writeFile(join(root, "example.txt"), "content\n", "utf8");
+  assert.equal((await runGitCommand(["add", "--", "example.txt"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["commit", "-m", "initial"], { cwd: root })).exitCode, 0);
+  assert.equal((await runGitCommand(["remote", "add", "origin", remote], { cwd: root })).exitCode, 0);
+
+  const branch = (await runGitCommand(["branch", "--show-current"], { cwd: root })).stdout.trim();
+  const head = (await runGitCommand(["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+  const tool = createGitPushTool();
+  const registry = new ToolRegistry();
+  registry.register(tool);
+  const caller = new ToolCaller(registry);
+  const approvals: Array<{ tool: string; input: unknown }> = [];
+
+  const result = await caller.execute(
+    { tool: "git_push", input: {} },
+    {
+      workspaceRoot: root,
+      approval: {
+        async requestApproval(request) {
+          approvals.push(request);
+          return true;
+        },
+      },
+    },
+  );
+
+  assert.equal(approvals.length, 1);
+  assert.equal(approvals[0].tool, "git_push");
+  assert.deepEqual(approvals[0].input, {});
+  assert.equal(result.error, undefined);
+  assert.equal((result.output as { exitCode: number }).exitCode, 0);
+
+  const remoteHead = await runGitCommand(["--git-dir", remote, "rev-parse", `refs/heads/${branch}`], {
+    cwd: root,
+  });
+  assert.equal(remoteHead.exitCode, 0);
+  assert.equal(remoteHead.stdout.trim(), head);
+});
+
+test("git_push rejects execution without approval", async () => {
+  const root = await createRepository();
+  const registry = new ToolRegistry();
+  registry.register(createGitPushTool());
+  const caller = new ToolCaller(registry);
+
+  const result = await caller.execute(
+    { tool: "git_push", input: {} },
+    { workspaceRoot: root },
+  );
+
+  assert.match(result.error ?? "", /Approval required for tool: git_push/);
 });

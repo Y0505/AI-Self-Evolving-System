@@ -34,6 +34,8 @@ export interface GitUnstageInput {
   paths: string[];
 }
 
+export type GitPushInput = Record<string, never>;
+
 export interface GitMutationResult {
   command: string;
   exitCode: number;
@@ -238,6 +240,49 @@ export const createGitCommitTool = (
 
     const message = input.message.trim();
     const args = ["commit", "-m", message];
+    const result = await runGitCommand(args, {
+      cwd: context.workspaceRoot,
+      timeoutMs: options?.timeoutMs,
+      maxOutputLength: options?.maxOutputLength,
+    });
+
+    return {
+      command: ["git", ...args].join(" "),
+      ...result,
+    };
+  },
+});
+
+export const createGitPushTool = (
+  options?: GitCommandToolOptions,
+): Tool<GitPushInput, GitMutationResult> => ({
+  name: "git_push",
+  description:
+    "Push the currently checked-out local branch to the same branch on the fixed origin remote. This is an external repository mutation and always requires explicit approval.",
+  requiresApproval: true,
+  async execute(_input: GitPushInput, context: ToolContext) {
+    const currentBranch = await runGitCommand(["branch", "--show-current"], {
+      cwd: context.workspaceRoot,
+      timeoutMs: options?.timeoutMs,
+      maxOutputLength: options?.maxOutputLength,
+    });
+
+    if (currentBranch.exitCode !== 0) {
+      return {
+        command: "git branch --show-current",
+        ...currentBranch,
+      };
+    }
+
+    const branch = currentBranch.stdout.trim();
+    if (!branch) {
+      throw new Error("Git push requires a checked-out local branch");
+    }
+    if (branch.startsWith("-")) {
+      throw new Error("Git push branch cannot start with '-'");
+    }
+
+    const args = ["push", "origin", `HEAD:${branch}`];
     const result = await runGitCommand(args, {
       cwd: context.workspaceRoot,
       timeoutMs: options?.timeoutMs,
