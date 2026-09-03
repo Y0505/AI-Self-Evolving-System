@@ -14,8 +14,7 @@ describe("github_get_pull_request_status", () => {
           state: "open",
           merged: false,
           mergeable: true,
-          checks: "unknown",
-          reviewDecision: "unknown",
+          headSha: "abc123",
         };
       },
     };
@@ -43,8 +42,7 @@ describe("github_get_pull_request_status", () => {
         state: "open",
         merged: false,
         mergeable: null,
-        checks: "unknown",
-        reviewDecision: "unknown",
+        headSha: "abc123",
       }),
     };
     const tool = createGitHubPullRequestStatusTool(client);
