@@ -7,27 +7,15 @@ import { RepositoryScanner } from "../repository/scanner.js";
 import { RepositoryWorkspace } from "../repository/workspace.js";
 import { ToolRegistry } from "../tools/registry.js";
 import type { ToolApprovalService } from "../tools/approval.js";
-import {
-  createReadFileTool,
-  createRemoveFileTool,
-  createWriteFileTool,
-} from "../tools/file-tools.js";
+import { createReadFileTool, createRemoveFileTool, createWriteFileTool } from "../tools/file-tools.js";
 import { createRunTestsTool } from "../tools/test-runner.js";
-import {
-  createGitBranchesTool,
-  createGitCheckoutTool,
-  createGitCommitTool,
-  createGitCreateBranchTool,
-  createGitDiffTool,
-  createGitPushTool,
-  createGitStageTool,
-  createGitStatusTool,
-  createGitUnstageTool,
-} from "../tools/git-tools.js";
+import { createGitBranchesTool, createGitCheckoutTool, createGitCommitTool, createGitCreateBranchTool, createGitDiffTool, createGitPushTool, createGitStageTool, createGitStatusTool, createGitUnstageTool } from "../tools/git-tools.js";
 import type { PullRequestClient } from "../github/pull-request-client.js";
 import { createGitHubPullRequestTool } from "../tools/github-tools.js";
 import type { PullRequestStatusClient } from "../github/pull-request-status-client.js";
 import { createGitHubPullRequestStatusTool } from "../tools/github-status-tools.js";
+import type { PullRequestChecksClient } from "../github/pull-request-checks-client.js";
+import { createGitHubPullRequestChecksTool } from "../tools/github-checks-tools.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -38,6 +26,7 @@ export interface AgentRuntimeOptions {
   approval?: ToolApprovalService;
   pullRequestClient?: PullRequestClient;
   pullRequestStatusClient?: PullRequestStatusClient;
+  pullRequestChecksClient?: PullRequestChecksClient;
 }
 
 export class AgentRuntime {
@@ -49,6 +38,7 @@ export class AgentRuntime {
   private readonly approval?: ToolApprovalService;
   private readonly pullRequestClient?: PullRequestClient;
   private readonly pullRequestStatusClient?: PullRequestStatusClient;
+  private readonly pullRequestChecksClient?: PullRequestChecksClient;
   private readonly scanner: RepositoryScanner;
 
   constructor(options: AgentRuntimeOptions) {
@@ -60,6 +50,7 @@ export class AgentRuntime {
     this.approval = options.approval;
     this.pullRequestClient = options.pullRequestClient;
     this.pullRequestStatusClient = options.pullRequestStatusClient;
+    this.pullRequestChecksClient = options.pullRequestChecksClient;
     this.scanner = new RepositoryScanner();
   }
 
@@ -83,20 +74,10 @@ export class AgentRuntime {
     registry.register(createGitPushTool());
     if (this.pullRequestClient) registry.register(createGitHubPullRequestTool(this.pullRequestClient));
     if (this.pullRequestStatusClient) registry.register(createGitHubPullRequestStatusTool(this.pullRequestStatusClient));
+    if (this.pullRequestChecksClient) registry.register(createGitHubPullRequestChecksTool(this.pullRequestChecksClient));
 
-    const model = new ProviderAgentModel({
-      provider: this.provider,
-      task,
-      repository,
-      instructions: this.instructions,
-    });
-    const agent = new AgentLoop(model, new ToolCaller(registry), {
-      maxToolCalls: this.maxToolCalls,
-    });
-
-    return agent.run(input, {
-      workspaceRoot: this.repositoryRoot,
-      approval: this.approval,
-    });
+    const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions });
+    const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
+    return agent.run(input, { workspaceRoot: this.repositoryRoot, approval: this.approval });
   }
 }
