@@ -32,3 +32,13 @@ test("proposer emits no improvement proposal when there are no failures", () => 
 
   assert.deepEqual(proposer.propose(summary(0)), []);
 });
+
+test("proposal preserves a null success rate when failure evidence is present", () => {
+  const proposer = new DeterministicImprovementProposer();
+  const input: LearningSummary = {
+    ...summary(1),
+    successRate: null,
+  };
+
+  assert.equal(proposer.propose(input)[0]?.evidence.successRate, null);
+});
