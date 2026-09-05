@@ -25,6 +25,8 @@ import type { DeploymentClient } from "../deployment/deployment-client.js";
 import { createDeployTool } from "../tools/deployment-tools.js";
 import type { DeploymentStatusClient } from "../deployment/deployment-status-client.js";
 import { createDeploymentStatusTool } from "../tools/deployment-status-tools.js";
+import type { HealthClient } from "../health/health-client.js";
+import { createHealthCheckTool } from "../tools/health-tools.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -40,6 +42,7 @@ export interface AgentRuntimeOptions {
   pullRequestMergeClient?: PullRequestMergeClient;
   deploymentClient?: DeploymentClient;
   deploymentStatusClient?: DeploymentStatusClient;
+  healthClient?: HealthClient;
 }
 
 export class AgentRuntime {
@@ -56,6 +59,7 @@ export class AgentRuntime {
   private readonly pullRequestMergeClient?: PullRequestMergeClient;
   private readonly deploymentClient?: DeploymentClient;
   private readonly deploymentStatusClient?: DeploymentStatusClient;
+  private readonly healthClient?: HealthClient;
   private readonly scanner: RepositoryScanner;
 
   constructor(options: AgentRuntimeOptions) {
@@ -72,6 +76,7 @@ export class AgentRuntime {
     this.pullRequestMergeClient = options.pullRequestMergeClient;
     this.deploymentClient = options.deploymentClient;
     this.deploymentStatusClient = options.deploymentStatusClient;
+    this.healthClient = options.healthClient;
     this.scanner = new RepositoryScanner();
   }
 
@@ -108,6 +113,7 @@ export class AgentRuntime {
     }
     if (this.deploymentClient) registry.register(createDeployTool(this.deploymentClient));
     if (this.deploymentStatusClient) registry.register(createDeploymentStatusTool(this.deploymentStatusClient));
+    if (this.healthClient) registry.register(createHealthCheckTool(this.healthClient));
 
     const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions });
     const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
