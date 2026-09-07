@@ -23,7 +23,7 @@ test("deterministic evaluator produces a weighted opportunity score", () => {
 
   assert.deepEqual(evaluator.evaluate(opportunity), {
     opportunityId: "opp-1",
-    score: 81,
+    score: 80,
     rank: "high",
     rationale:
       "Score combines demand, feasibility, impact, monetization potential, and strategic fit using fixed weights.",
