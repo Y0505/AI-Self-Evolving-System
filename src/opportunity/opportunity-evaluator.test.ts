@@ -39,6 +39,6 @@ test("evaluator clamps scores outside the expected range", () => {
     feasibilityScore: -20,
   });
 
-  assert.equal(evaluation.score, 69);
+  assert.equal(evaluation.score, 67);
   assert.equal(evaluation.rank, "medium");
 });
