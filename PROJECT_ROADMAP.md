@@ -65,20 +65,20 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Research boundary
 - [x] Planning boundary
 - [x] Plan → Task Bridge
+- [x] Connect generated tasks to the existing task execution loop
 
 ## Current milestone
 
-- [ ] **Connect generated tasks to the existing task execution loop**
-  - [ ] Adapt task drafts into the existing Task contract without losing goal/plan-step provenance.
-  - [ ] Add the smallest possible integration with the existing task manager.
-  - [ ] Execute nothing automatically beyond the existing bounded execution mechanism.
+- [ ] **Build implementation context from goal, research, plan, and task**
+  - [ ] Define a provider-agnostic implementation context contract.
+  - [ ] Combine selected goal, research result, plan, and registered task without executing it.
+  - [ ] Pass the context into the existing bounded agent runtime.
   - [ ] Add focused integration tests.
 
 ## Next milestones
 
 ### Engineering execution
 
-- [ ] Build implementation context from goal, research, plan, and task
 - [ ] Improve bounded agent execution around generated tasks
 - [ ] Connect execution results to learning records
 
