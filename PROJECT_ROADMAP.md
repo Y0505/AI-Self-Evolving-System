@@ -57,6 +57,8 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Deterministic learning analysis
 - [x] Deterministic improvement proposal boundary
 - [x] Approved improvement execution boundary
+- [x] Richer deterministic learning analysis
+- [x] Connect execution results to richer learning analysis
 
 ### Economic decision layer
 
@@ -84,7 +86,6 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 ### Engineering execution
 
 - [ ] Improve bounded agent execution around generated tasks
-- [ ] Connect execution results to richer learning analysis
 
 ### Product / economic loop
 
