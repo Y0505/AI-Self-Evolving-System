@@ -1,7 +1,11 @@
 import type { RichLearningSummary } from "./richer-learning-analysis.js";
 import type { ImprovementProposal } from "./improvement-proposal.js";
 
-export class DeterministicRichImprovementProposer {
+export interface RichImprovementProposer {
+  propose(summary: RichLearningSummary): ImprovementProposal[];
+}
+
+export class DeterministicRichImprovementProposer implements RichImprovementProposer {
   propose(summary: RichLearningSummary): ImprovementProposal[] {
     if (summary.failures === 0 || summary.failurePatterns.length === 0) return [];
 
