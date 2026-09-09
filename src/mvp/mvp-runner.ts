@@ -56,8 +56,8 @@ export class MvpRunner {
 
     const executions: ExecutionResult[] = [];
     for (const task of registeredTasks) {
-      this.dependencies.implementationContextBuilder.build({ goal: selectedGoal, research, plan, task });
-      const execution = await this.dependencies.executionLoop.run(task.id);
+      const context = this.dependencies.implementationContextBuilder.build({ goal: selectedGoal, research, plan, task });
+      const execution = await this.dependencies.executionLoop.run(task.id, context);
       executions.push(execution);
 
       const record: LearningRecord = {
