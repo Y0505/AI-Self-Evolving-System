@@ -99,6 +99,11 @@ test("runs the MVP loop from opportunity selection through bounded execution and
     assert.equal(result.executions[0]?.status, "completed");
     assert.equal(taskManager.get(result.tasks[0]!.id).status, "completed");
     assert.equal(learningStore.records[0]?.outcome, "success");
+    assert.equal(result.learning?.total, 1);
+    assert.equal(result.learning?.successes, 1);
+    assert.equal(result.learning?.failures, 0);
+    assert.deepEqual(result.learning?.outcomesByTask[result.tasks[0]!.id], { success: 1, failure: 0, unknown: 0 });
+    assert.deepEqual(result.learning?.failurePatterns, []);
     assert.equal(provider.requests.length, 1);
     assert.equal(provider.requests[0]?.implementationContext?.goal.opportunityId, "opportunity-1");
     assert.equal(provider.requests[0]?.implementationContext?.task.id, result.tasks[0]!.id);
@@ -127,4 +132,5 @@ test("stops cleanly when no opportunity is available", async () => {
   assert.equal(result.selectedGoal, null);
   assert.equal(result.tasks.length, 0);
   assert.equal(learningStore.records.length, 0);
+  assert.equal(result.learning, null);
 });
