@@ -64,22 +64,20 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Deterministic goal selection
 - [x] Research boundary
 - [x] Planning boundary
+- [x] Plan → Task Bridge
 
 ## Current milestone
 
-- [ ] **Plan → Task Bridge**
-  - [x] Convert a validated plan into explicit task drafts.
-  - [x] Preserve goal and plan-step identity.
-  - [x] Keep task generation deterministic at first.
-  - [x] Do not execute tasks in this milestone.
-  - [x] Add focused tests.
-  - [ ] Merge only after build/test/checks pass.
+- [ ] **Connect generated tasks to the existing task execution loop**
+  - [ ] Adapt task drafts into the existing Task contract without losing goal/plan-step provenance.
+  - [ ] Add the smallest possible integration with the existing task manager.
+  - [ ] Execute nothing automatically beyond the existing bounded execution mechanism.
+  - [ ] Add focused integration tests.
 
 ## Next milestones
 
 ### Engineering execution
 
-- [ ] Connect generated tasks to the existing task execution loop
 - [ ] Build implementation context from goal, research, plan, and task
 - [ ] Improve bounded agent execution around generated tasks
 - [ ] Connect execution results to learning records
