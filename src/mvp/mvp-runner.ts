@@ -9,7 +9,8 @@ import type { Task } from "../core/task.js";
 import type { TaskExecutionLoop } from "../core/execution-loop.js";
 import type { ExecutionResult } from "../core/execution.js";
 import type { LearningRecord, LearningRecordStore } from "../learning/learning-record.js";
-import type { RichLearningSummary } from "../learning/richer-learning-analysis.js";
+import type { RichLearningAnalyzer, RichLearningSummary } from "../learning/richer-learning-analysis.js";
+import type { RichImprovementProposer } from "../learning/improvement-proposal-from-rich-analysis.js";
 import type { ImprovementProposal } from "../learning/improvement-proposal.js";
 import { DeterministicRichLearningAnalyzer } from "../learning/richer-learning-analysis.js";
 import { DeterministicRichImprovementProposer } from "../learning/improvement-proposal-from-rich-analysis.js";
@@ -35,8 +36,8 @@ export interface MvpRunnerDependencies {
   implementationContextBuilder: ImplementationContextBuilder;
   executionLoop: TaskExecutionLoop;
   learningStore: LearningRecordStore;
-  learningAnalyzer?: DeterministicRichLearningAnalyzer;
-  improvementProposer?: DeterministicRichImprovementProposer;
+  learningAnalyzer?: RichLearningAnalyzer;
+  improvementProposer?: RichImprovementProposer;
 }
 
 export class MvpRunner {
