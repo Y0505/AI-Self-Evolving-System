@@ -1,4 +1,5 @@
 import type { Task } from "./task.js";
+import type { ImplementationContext } from "../planning/implementation-context.js";
 
 export interface ExecutionResult {
   taskId: string;
@@ -7,7 +8,7 @@ export interface ExecutionResult {
 }
 
 export interface TaskExecutor {
-  execute(task: Task): Promise<ExecutionResult>;
+  execute(task: Task, implementationContext?: ImplementationContext): Promise<ExecutionResult>;
 }
 
 export class NoopTaskExecutor implements TaskExecutor {
