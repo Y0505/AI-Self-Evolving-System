@@ -68,11 +68,12 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 ## Current milestone
 
 - [ ] **Plan → Task Bridge**
-  - Convert a validated plan into explicit executable tasks.
-  - Preserve goal and plan-step identity.
-  - Keep task generation deterministic at first.
-  - Do not execute tasks in this milestone.
-  - Add focused tests.
+  - [x] Convert a validated plan into explicit task drafts.
+  - [x] Preserve goal and plan-step identity.
+  - [x] Keep task generation deterministic at first.
+  - [x] Do not execute tasks in this milestone.
+  - [x] Add focused tests.
+  - [ ] Merge only after build/test/checks pass.
 
 ## Next milestones
 
