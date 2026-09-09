@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { LearningRecord } from "./learning-record.js";
 import { DeterministicRichLearningAnalyzer } from "./richer-learning-analysis.js";
+import { DeterministicRichImprovementProposer } from "./improvement-proposal-from-rich-analysis.js";
 
 const record = (
   id: string,
@@ -54,4 +55,32 @@ test("rich analyzer ignores empty failure summaries and handles empty input", ()
     outcomesByTask: {},
     failurePatterns: [],
   });
+});
+
+test("rich proposer creates one evidence-backed proposal per failure pattern", () => {
+  const analyzer = new DeterministicRichLearningAnalyzer();
+  const summary = analyzer.analyze([
+    record("1", "task-b", "failure", "mvp-runner", "Timeout"),
+    record("2", "task-a", "failure", "mvp-runner", " timeout "),
+    record("3", "task-c", "success", "mvp-runner", "completed"),
+  ]);
+
+  const proposer = new DeterministicRichImprovementProposer();
+  assert.deepEqual(proposer.propose(summary), [
+    {
+      id: "review-failure-pattern:timeout",
+      title: "Review recurring failure: timeout",
+      rationale: "The same failure pattern occurred 2 time(s) across 2 task(s). Review the evidence before considering an implementation change.",
+      evidence: { totalRecords: 3, failures: 2, successRate: 1 / 3 },
+      status: "proposed",
+    },
+  ]);
+});
+
+test("rich proposer emits no proposal without actionable failure patterns", () => {
+  const analyzer = new DeterministicRichLearningAnalyzer();
+  const proposer = new DeterministicRichImprovementProposer();
+  assert.deepEqual(proposer.propose(analyzer.analyze([
+    record("1", "task-a", "success", "mvp-runner", "completed"),
+  ])), []);
 });
