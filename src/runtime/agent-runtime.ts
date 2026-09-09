@@ -34,6 +34,8 @@ export interface AgentRuntimeOptions {
   provider: AIProvider;
   instructions?: string;
   maxToolCalls?: number;
+  maxConsecutiveToolErrors?: number;
+  maxRepeatedToolCalls?: number;
   testTimeoutMs?: number;
   approval?: ToolApprovalService;
   pullRequestClient?: PullRequestClient;
@@ -51,6 +53,8 @@ export class AgentRuntime {
   private readonly provider: AIProvider;
   private readonly instructions?: string;
   private readonly maxToolCalls?: number;
+  private readonly maxConsecutiveToolErrors?: number;
+  private readonly maxRepeatedToolCalls?: number;
   private readonly testTimeoutMs?: number;
   private readonly approval?: ToolApprovalService;
   private readonly pullRequestClient?: PullRequestClient;
@@ -68,6 +72,8 @@ export class AgentRuntime {
     this.provider = options.provider;
     this.instructions = options.instructions;
     this.maxToolCalls = options.maxToolCalls;
+    this.maxConsecutiveToolErrors = options.maxConsecutiveToolErrors;
+    this.maxRepeatedToolCalls = options.maxRepeatedToolCalls;
     this.testTimeoutMs = options.testTimeoutMs;
     this.approval = options.approval;
     this.pullRequestClient = options.pullRequestClient;
@@ -117,7 +123,11 @@ export class AgentRuntime {
     if (this.healthClient) registry.register(createHealthCheckTool(this.healthClient));
 
     const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions, implementationContext });
-    const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
+    const agent = new AgentLoop(model, new ToolCaller(registry), {
+      maxToolCalls: this.maxToolCalls,
+      maxConsecutiveToolErrors: this.maxConsecutiveToolErrors,
+      maxRepeatedToolCalls: this.maxRepeatedToolCalls,
+    });
     return agent.run(input, { workspaceRoot: this.repositoryRoot, approval: this.approval });
   }
 }
