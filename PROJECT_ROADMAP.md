@@ -59,6 +59,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Approved improvement execution boundary
 - [x] Richer deterministic learning analysis
 - [x] Connect execution results to richer learning analysis
+- [x] Explicit improvement approval checkpoint
 
 ### Economic decision layer
 
@@ -103,7 +104,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [ ] Add explicit budgets and execution limits
 - [ ] Add audit/event trail across autonomous runs
 - [ ] Add failure recovery without bypassing approval boundaries
-- [ ] Add human approval checkpoints for consequential actions
+- [x] Add explicit improvement approval checkpoint
 
 ## Explicit non-goals for now
 
