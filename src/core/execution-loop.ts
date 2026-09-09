@@ -1,6 +1,7 @@
 import type { Task } from "./task.js";
 import type { TaskExecutor, ExecutionResult } from "./execution.js";
 import type { InMemoryTaskManager } from "./task-manager.js";
+import type { ImplementationContext } from "../planning/implementation-context.js";
 
 export class TaskExecutionLoop {
   constructor(
@@ -8,7 +9,7 @@ export class TaskExecutionLoop {
     private readonly executor: TaskExecutor,
   ) {}
 
-  async run(taskId: string): Promise<ExecutionResult> {
+  async run(taskId: string, implementationContext?: ImplementationContext): Promise<ExecutionResult> {
     const task = this.taskManager.get(taskId);
     if (task.status !== "pending") {
       throw new Error(`Task is not pending: ${taskId}`);
@@ -17,7 +18,7 @@ export class TaskExecutionLoop {
     this.taskManager.update(taskId, { status: "running", error: undefined });
 
     try {
-      const result = await this.executor.execute(task);
+      const result = await this.executor.execute(task, implementationContext);
       this.taskManager.update(taskId, {
         status: result.status,
         result: result.message,
