@@ -67,24 +67,24 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Plan → Task Bridge
 - [x] Connect generated tasks to the existing task execution loop
 - [x] Build implementation context from goal, research, plan, and task
-  - [x] Define a provider-agnostic implementation context contract.
-  - [x] Combine selected goal, research result, plan, and registered task without executing it.
-  - [x] Pass the context into the existing bounded agent runtime.
-  - [x] Add focused integration tests.
 
 ## Current milestone
 
-- [ ] **Improve bounded agent execution around generated tasks**
-  - [ ] Add an explicit task-execution entry boundary.
-  - [ ] Preserve pending/running/completed/failed task state.
-  - [ ] Keep tool execution bounded by the existing agent loop and approvals.
-  - [ ] Add focused execution integration tests.
+- [ ] **MVP: validate the complete opportunity-to-learning loop**
+  - [x] Evaluate opportunities and select a goal.
+  - [x] Research and plan through provider-agnostic boundaries.
+  - [x] Convert plan steps into registered tasks with provenance.
+  - [x] Build implementation context and pass it into bounded agent execution.
+  - [x] Preserve task state through execution and record the result as learning.
+  - [x] Add an end-to-end deterministic MVP test.
+  - [ ] Run the MVP against a real AI provider on a safe disposable repository.
 
 ## Next milestones
 
 ### Engineering execution
 
-- [ ] Connect execution results to learning records
+- [ ] Improve bounded agent execution around generated tasks
+- [ ] Connect execution results to richer learning analysis
 
 ### Product / economic loop
 
