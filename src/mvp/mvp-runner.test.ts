@@ -110,6 +110,7 @@ test("runs the MVP loop from opportunity selection through bounded execution and
 test("stops cleanly when no opportunity is available", async () => {
   const learningStore = new CapturingLearningStore();
   const taskManager = new InMemoryTaskManager();
+  const fakeRuntime = { run: async () => ({ content: "unused", toolResults: [] }) } as unknown as AgentRuntime;
   const runner = new MvpRunner({
     opportunityEvaluator: new DeterministicOpportunityEvaluator(),
     goalSelector: new DeterministicGoalSelector(),
@@ -118,7 +119,7 @@ test("stops cleanly when no opportunity is available", async () => {
     planTaskBridge: new DeterministicPlanTaskBridge(),
     taskRegistrar: new PlanTaskRegistrar(taskManager),
     implementationContextBuilder: new DeterministicImplementationContextBuilder(),
-    executionLoop: new TaskExecutionLoop(taskManager, new AgentTaskExecutor({ run: async () => ({ content: "unused", toolResults: [] }) } as AgentRuntime)),
+    executionLoop: new TaskExecutionLoop(taskManager, new AgentTaskExecutor(fakeRuntime)),
     learningStore,
   });
 
