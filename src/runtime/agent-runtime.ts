@@ -27,6 +27,7 @@ import type { DeploymentStatusClient } from "../deployment/deployment-status-cli
 import { createDeploymentStatusTool } from "../tools/deployment-status-tools.js";
 import type { HealthClient } from "../health/health-client.js";
 import { createHealthCheckTool } from "../tools/health-tools.js";
+import type { ImplementationContext } from "../planning/implementation-context.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -80,7 +81,7 @@ export class AgentRuntime {
     this.scanner = new RepositoryScanner();
   }
 
-  async run(task: Task, input: string): Promise<AgentRunResult> {
+  async run(task: Task, input: string, implementationContext?: ImplementationContext): Promise<AgentRunResult> {
     const repository = await this.scanner.scan(this.repositoryRoot);
     const workspace = new RepositoryWorkspace({ root: this.repositoryRoot });
     const registry = new ToolRegistry();
@@ -115,7 +116,7 @@ export class AgentRuntime {
     if (this.deploymentStatusClient) registry.register(createDeploymentStatusTool(this.deploymentStatusClient));
     if (this.healthClient) registry.register(createHealthCheckTool(this.healthClient));
 
-    const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions });
+    const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions, implementationContext });
     const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
     return agent.run(input, { workspaceRoot: this.repositoryRoot, approval: this.approval });
   }
