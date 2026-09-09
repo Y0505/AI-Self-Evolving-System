@@ -3,12 +3,14 @@ import type { ToolCallResult } from "../agent/tool-caller.js";
 import type { Task } from "../core/task.js";
 import type { RepositorySnapshot } from "../repository/scanner.js";
 import type { AIProvider } from "./provider.js";
+import type { ImplementationContext } from "../planning/implementation-context.js";
 
 export interface ProviderAgentModelOptions {
   provider: AIProvider;
   task: Task;
   repository: RepositorySnapshot;
   instructions?: string;
+  implementationContext?: ImplementationContext;
 }
 
 export class ProviderAgentModel implements AgentModel {
@@ -16,19 +18,22 @@ export class ProviderAgentModel implements AgentModel {
   private readonly task: Task;
   private readonly repository: RepositorySnapshot;
   private readonly instructions?: string;
+  private readonly implementationContext?: ImplementationContext;
 
   constructor(options: ProviderAgentModelOptions) {
     this.provider = options.provider;
     this.task = options.task;
     this.repository = options.repository;
     this.instructions = options.instructions;
+    this.implementationContext = options.implementationContext;
   }
 
   async decide(input: string, history: ToolCallResult[]): Promise<AgentDecision> {
     const response = await this.provider.generate({
       task: this.task,
       repository: this.repository,
-      instructions: buildInstructions(this.instructions, input, history),
+      instructions: buildInstructions(this.instructions, input, history, this.implementationContext),
+      implementationContext: this.implementationContext,
     });
 
     return parseAgentDecision(response.content);
@@ -39,10 +44,13 @@ function buildInstructions(
   instructions: string | undefined,
   input: string,
   history: ToolCallResult[],
+  implementationContext: ImplementationContext | undefined,
 ): string {
   const historyText = JSON.stringify(history);
+  const contextText = implementationContext ? JSON.stringify(implementationContext) : undefined;
   return [
     instructions,
+    contextText ? `Implementation context: ${contextText}` : undefined,
     `Current agent input: ${input}`,
     "Available tools: read_file, write_file, remove_file, run_tests, git_status, git_diff, git_branches, git_create_branch, git_stage, git_unstage, git_checkout, git_commit, git_push.",
     'The run_tests tool accepts {"profile":"test"} or {"profile":"build"}.',
