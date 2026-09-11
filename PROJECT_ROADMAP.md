@@ -61,6 +61,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Connect execution results to richer learning analysis
 - [x] Explicit improvement approval checkpoint
 - [x] Improvement outcome verification boundary
+- [x] Controlled improvement lifecycle orchestration
 
 ### Economic decision layer
 
@@ -101,6 +102,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 
 ### Controlled autonomy
 
+- [x] Define improvement lifecycle orchestration boundary
 - [ ] Define end-to-end orchestration state machine
 - [ ] Add explicit budgets and execution limits
 - [ ] Add audit/event trail across autonomous runs
