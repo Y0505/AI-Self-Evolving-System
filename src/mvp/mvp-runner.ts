@@ -9,6 +9,11 @@ import type { Task } from "../core/task.js";
 import type { TaskExecutionLoop } from "../core/execution-loop.js";
 import type { ExecutionResult } from "../core/execution.js";
 import type { LearningRecord, LearningRecordStore } from "../learning/learning-record.js";
+import type { RichLearningAnalyzer, RichLearningSummary } from "../learning/richer-learning-analysis.js";
+import type { RichImprovementProposer } from "../learning/improvement-proposal-from-rich-analysis.js";
+import type { ImprovementProposal } from "../learning/improvement-proposal.js";
+import { DeterministicRichLearningAnalyzer } from "../learning/richer-learning-analysis.js";
+import { DeterministicRichImprovementProposer } from "../learning/improvement-proposal-from-rich-analysis.js";
 
 export interface MvpRunResult {
   selectedGoal: SelectedGoal | null;
@@ -17,6 +22,8 @@ export interface MvpRunResult {
   plan: PlanningResult | null;
   tasks: Task[];
   executions: ExecutionResult[];
+  learning: RichLearningSummary | null;
+  improvementProposals: ImprovementProposal[];
 }
 
 export interface MvpRunnerDependencies {
@@ -29,6 +36,8 @@ export interface MvpRunnerDependencies {
   implementationContextBuilder: ImplementationContextBuilder;
   executionLoop: TaskExecutionLoop;
   learningStore: LearningRecordStore;
+  learningAnalyzer?: RichLearningAnalyzer;
+  improvementProposer?: RichImprovementProposer;
 }
 
 export class MvpRunner {
@@ -42,7 +51,7 @@ export class MvpRunner {
 
     const selectedGoal = this.dependencies.goalSelector.select(evaluations);
     if (!selectedGoal) {
-      return { selectedGoal: null, evaluation: null, research: null, plan: null, tasks: [], executions: [] };
+      return { selectedGoal: null, evaluation: null, research: null, plan: null, tasks: [], executions: [], learning: null, improvementProposals: [] };
     }
 
     const selectedEvaluation = evaluations.find(
@@ -71,6 +80,21 @@ export class MvpRunner {
       await this.dependencies.learningStore.save(record);
     }
 
-    return { selectedGoal, evaluation: selectedEvaluation, research, plan, tasks: registeredTasks, executions };
+    const learningRecords = (await Promise.all(
+      registeredTasks.map((task) => this.dependencies.learningStore.listByTask(task.id)),
+    )).flat();
+    const learning = (this.dependencies.learningAnalyzer ?? new DeterministicRichLearningAnalyzer()).analyze(learningRecords);
+    const improvementProposals = (this.dependencies.improvementProposer ?? new DeterministicRichImprovementProposer()).propose(learning);
+
+    return {
+      selectedGoal,
+      evaluation: selectedEvaluation,
+      research,
+      plan,
+      tasks: registeredTasks,
+      executions,
+      learning,
+      improvementProposals,
+    };
   }
 }

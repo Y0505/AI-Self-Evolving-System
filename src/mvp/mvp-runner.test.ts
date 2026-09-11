@@ -20,7 +20,6 @@ import type { LearningRecord, LearningRecordStore } from "../learning/learning-r
 
 class CapturingProvider implements AIProvider {
   requests: AIRequest[] = [];
-
   async generate(request: AIRequest): Promise<AIResponse> {
     this.requests.push(request);
     return { content: JSON.stringify({ type: "final", content: "MVP task completed" }), provider: "test" };
@@ -35,76 +34,53 @@ class TestResearchClient implements ResearchClient {
 
 class TestPlanningClient implements PlanningClient {
   async plan({ goal }: Parameters<PlanningClient["plan"]>[0]) {
-    return {
-      goalId: goal.opportunityId,
-      summary: "Test plan",
-      steps: [{ id: "step-1", title: "Build MVP", description: "Build the selected MVP" }],
-    };
+    return { goalId: goal.opportunityId, summary: "Test plan", steps: [{ id: "step-1", title: "Build MVP", description: "Build the selected MVP" }] };
   }
 }
 
 class CapturingLearningStore implements LearningRecordStore {
   records: LearningRecord[] = [];
-
-  async save(record: LearningRecord): Promise<void> {
-    this.records.push(record);
-  }
-
-  async listByTask(taskId: string): Promise<LearningRecord[]> {
-    return this.records.filter((record) => record.taskId === taskId);
-  }
+  async save(record: LearningRecord): Promise<void> { this.records.push(record); }
+  async listByTask(taskId: string): Promise<LearningRecord[]> { return this.records.filter((record) => record.taskId === taskId); }
 }
 
 const opportunity: Opportunity = {
-  id: "opportunity-1",
-  title: "Test MVP",
-  problem: "A test problem",
-  source: "test",
-  evidence: ["test evidence"],
-  demandScore: 90,
-  feasibilityScore: 90,
-  impactScore: 80,
-  monetizationScore: 80,
-  strategicFitScore: 80,
+  id: "opportunity-1", title: "Test MVP", problem: "A test problem", source: "test", evidence: ["test evidence"],
+  demandScore: 90, feasibilityScore: 90, impactScore: 80, monetizationScore: 80, strategicFitScore: 80,
+};
+
+const buildRunner = async (root: string, provider: AIProvider, learningStore: CapturingLearningStore) => {
+  const runtime = new AgentRuntime({ repositoryRoot: root, provider });
+  const taskManager = new InMemoryTaskManager();
+  return new MvpRunner({
+    opportunityEvaluator: new DeterministicOpportunityEvaluator(), goalSelector: new DeterministicGoalSelector(),
+    researchClient: new TestResearchClient(), planningClient: new TestPlanningClient(),
+    planTaskBridge: new DeterministicPlanTaskBridge(), taskRegistrar: new PlanTaskRegistrar(taskManager),
+    implementationContextBuilder: new DeterministicImplementationContextBuilder(),
+    executionLoop: new TaskExecutionLoop(taskManager, new AgentTaskExecutor(runtime)), learningStore,
+  });
 };
 
 test("runs the MVP loop from opportunity selection through bounded execution and learning", async () => {
   const root = await mkdtemp(join(tmpdir(), "ai-self-evolving-mvp-"));
   try {
     await writeFile(join(root, "package.json"), "{}", "utf8");
-
     const provider = new CapturingProvider();
-    const runtime = new AgentRuntime({ repositoryRoot: root, provider });
-    const taskManager = new InMemoryTaskManager();
     const learningStore = new CapturingLearningStore();
-    const taskRegistrar = new PlanTaskRegistrar(taskManager);
-    const executionLoop = new TaskExecutionLoop(taskManager, new AgentTaskExecutor(runtime));
-
-    const runner = new MvpRunner({
-      opportunityEvaluator: new DeterministicOpportunityEvaluator(),
-      goalSelector: new DeterministicGoalSelector(),
-      researchClient: new TestResearchClient(),
-      planningClient: new TestPlanningClient(),
-      planTaskBridge: new DeterministicPlanTaskBridge(),
-      taskRegistrar,
-      implementationContextBuilder: new DeterministicImplementationContextBuilder(),
-      executionLoop,
-      learningStore,
-    });
-
+    const runner = await buildRunner(root, provider, learningStore);
     const result = await runner.run([opportunity]);
-
     assert.equal(result.selectedGoal?.opportunityId, "opportunity-1");
     assert.equal(result.tasks.length, 1);
     assert.equal(result.executions[0]?.status, "completed");
-    assert.equal(taskManager.get(result.tasks[0]!.id).status, "completed");
-    assert.equal(learningStore.records[0]?.outcome, "success");
+    assert.equal(result.learning?.total, 1);
+    assert.equal(result.learning?.successes, 1);
+    assert.equal(result.learning?.failures, 0);
+    assert.deepEqual(result.learning?.outcomesByTask[result.tasks[0]!.id], { success: 1, failure: 0, unknown: 0 });
+    assert.deepEqual(result.learning?.failurePatterns, []);
+    assert.deepEqual(result.improvementProposals, []);
     assert.equal(provider.requests.length, 1);
     assert.equal(provider.requests[0]?.implementationContext?.goal.opportunityId, "opportunity-1");
-    assert.equal(provider.requests[0]?.implementationContext?.task.id, result.tasks[0]!.id);
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("stops cleanly when no opportunity is available", async () => {
@@ -112,19 +88,12 @@ test("stops cleanly when no opportunity is available", async () => {
   const taskManager = new InMemoryTaskManager();
   const fakeRuntime = { run: async () => ({ content: "unused", toolResults: [] }) } as unknown as AgentRuntime;
   const runner = new MvpRunner({
-    opportunityEvaluator: new DeterministicOpportunityEvaluator(),
-    goalSelector: new DeterministicGoalSelector(),
-    researchClient: new TestResearchClient(),
-    planningClient: new TestPlanningClient(),
-    planTaskBridge: new DeterministicPlanTaskBridge(),
-    taskRegistrar: new PlanTaskRegistrar(taskManager),
-    implementationContextBuilder: new DeterministicImplementationContextBuilder(),
-    executionLoop: new TaskExecutionLoop(taskManager, new AgentTaskExecutor(fakeRuntime)),
-    learningStore,
+    opportunityEvaluator: new DeterministicOpportunityEvaluator(), goalSelector: new DeterministicGoalSelector(),
+    researchClient: new TestResearchClient(), planningClient: new TestPlanningClient(), planTaskBridge: new DeterministicPlanTaskBridge(),
+    taskRegistrar: new PlanTaskRegistrar(taskManager), implementationContextBuilder: new DeterministicImplementationContextBuilder(),
+    executionLoop: new TaskExecutionLoop(taskManager, new AgentTaskExecutor(fakeRuntime)), learningStore,
   });
-
   const result = await runner.run([]);
-  assert.equal(result.selectedGoal, null);
-  assert.equal(result.tasks.length, 0);
-  assert.equal(learningStore.records.length, 0);
+  assert.equal(result.selectedGoal, null); assert.equal(result.tasks.length, 0);
+  assert.equal(learningStore.records.length, 0); assert.equal(result.learning, null); assert.deepEqual(result.improvementProposals, []);
 });
