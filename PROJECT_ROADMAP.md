@@ -103,7 +103,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 ### Controlled autonomy
 
 - [x] Define improvement lifecycle orchestration boundary
-- [ ] Define end-to-end orchestration state machine
+- [x] Define end-to-end orchestration state machine
 - [ ] Add explicit budgets and execution limits
 - [ ] Add audit/event trail across autonomous runs
 - [ ] Add failure recovery without bypassing approval boundaries
