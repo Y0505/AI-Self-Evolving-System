@@ -108,7 +108,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Add audit/event trail across autonomous runs
 - [x] Add failure recovery without bypassing approval boundaries
 - [x] Add explicit improvement approval checkpoint
-- [ ] Integrate state, budget, audit, and recovery boundaries into a controlled run orchestrator
+- [x] Integrate state, budget, audit, and recovery boundaries into a controlled run orchestrator
 
 ## Explicit non-goals for now
 
