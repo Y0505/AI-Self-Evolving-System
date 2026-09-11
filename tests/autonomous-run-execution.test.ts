@@ -34,14 +34,14 @@ test("execution runs lifecycle steps and records terminal completion", async () 
   const calls: string[] = [];
 
   const result = await execution.execute([
-    { state: "evaluate", run: async () => calls.push("evaluate") },
-    { state: "select_goal", run: async () => calls.push("select_goal") },
-    { state: "research", run: async () => calls.push("research") },
-    { state: "plan", run: async () => calls.push("plan") },
-    { state: "build", run: async () => calls.push("build") },
-    { state: "test", run: async () => calls.push("test") },
-    { state: "observe", run: async () => calls.push("observe") },
-    { state: "learn", run: async () => calls.push("learn") },
+    { state: "evaluate", run: async () => { calls.push("evaluate"); } },
+    { state: "select_goal", run: async () => { calls.push("select_goal"); } },
+    { state: "research", run: async () => { calls.push("research"); } },
+    { state: "plan", run: async () => { calls.push("plan"); } },
+    { state: "build", run: async () => { calls.push("build"); } },
+    { state: "test", run: async () => { calls.push("test"); } },
+    { state: "observe", run: async () => { calls.push("observe"); } },
+    { state: "learn", run: async () => { calls.push("learn"); } },
   ]);
 
   assert.equal(result.completed, true);
