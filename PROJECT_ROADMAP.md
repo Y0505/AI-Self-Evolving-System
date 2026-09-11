@@ -60,6 +60,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Richer deterministic learning analysis
 - [x] Connect execution results to richer learning analysis
 - [x] Explicit improvement approval checkpoint
+- [x] Improvement outcome verification boundary
 
 ### Economic decision layer
 
