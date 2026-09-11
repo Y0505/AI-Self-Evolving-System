@@ -106,7 +106,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Define end-to-end orchestration state machine
 - [x] Add explicit budgets and execution limits
 - [x] Add audit/event trail across autonomous runs
-- [ ] Add failure recovery without bypassing approval boundaries
+- [x] Add failure recovery without bypassing approval boundaries
 - [x] Add explicit improvement approval checkpoint
 
 ## Explicit non-goals for now
