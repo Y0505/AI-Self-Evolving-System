@@ -5,7 +5,7 @@ export interface ExecutionBudgetLimits {
   maxIterations: number;
 }
 
-export type ExecutionBudgetMetric = keyof ExecutionBudgetLimits;
+export type ExecutionBudgetMetric = "tasks" | "toolCalls" | "retries" | "iterations";
 
 export interface ExecutionBudgetSnapshot {
   tasks: number;
@@ -13,6 +13,13 @@ export interface ExecutionBudgetSnapshot {
   retries: number;
   iterations: number;
 }
+
+const metricToLimit: Record<ExecutionBudgetMetric, keyof ExecutionBudgetLimits> = {
+  tasks: "maxTasks",
+  toolCalls: "maxToolCalls",
+  retries: "maxRetries",
+  iterations: "maxIterations",
+};
 
 export class ExecutionBudgetExceededError extends Error {
   constructor(
@@ -23,13 +30,6 @@ export class ExecutionBudgetExceededError extends Error {
     this.name = "ExecutionBudgetExceededError";
   }
 }
-
-const metricToLimit: Record<ExecutionBudgetMetric, keyof ExecutionBudgetLimits> = {
-  tasks: "maxTasks",
-  toolCalls: "maxToolCalls",
-  retries: "maxRetries",
-  iterations: "maxIterations",
-};
 
 export class DeterministicExecutionBudget {
   private readonly counts: ExecutionBudgetSnapshot = {
