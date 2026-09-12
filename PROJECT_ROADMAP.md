@@ -110,6 +110,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Add explicit improvement approval checkpoint
 - [x] Integrate state, budget, audit, and recovery boundaries into a controlled run orchestrator
 - [x] Connect generated task execution to autonomous budget and audit controls
+- [x] Connect agent tool calls and iterations to autonomous execution budgets
 
 ## Explicit non-goals for now
 
