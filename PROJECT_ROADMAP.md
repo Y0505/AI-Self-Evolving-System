@@ -88,7 +88,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 
 ### Engineering execution
 
-- [ ] Improve bounded agent execution around generated tasks
+- [x] Improve bounded agent execution around generated tasks
 
 ### Product / economic loop
 
@@ -109,6 +109,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Add failure recovery without bypassing approval boundaries
 - [x] Add explicit improvement approval checkpoint
 - [x] Integrate state, budget, audit, and recovery boundaries into a controlled run orchestrator
+- [x] Connect generated task execution to autonomous budget and audit controls
 
 ## Explicit non-goals for now
 
