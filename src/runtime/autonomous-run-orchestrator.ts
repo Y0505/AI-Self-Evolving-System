@@ -73,7 +73,17 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
   async recordBudgetExceeded(metric: string, message: string): Promise<void> {
     this.requireValue(metric, "budget metric");
     this.requireValue(message, "budget message");
-    await this.append({ type: "budget_exceeded", state: this.state, message, metadata: { metric } });
+    const recoveryAction = this.dependencies.recovery.decide({
+      kind: "budget_exceeded",
+      message,
+      retryCount: 0,
+    });
+    await this.append({
+      type: "budget_exceeded",
+      state: this.state,
+      message,
+      metadata: { metric, recoveryAction },
+    });
   }
 
   async complete(message?: string): Promise<void> {
