@@ -62,7 +62,7 @@ test("integrates the deterministic MVP loop into the autonomous lifecycle", asyn
 test("pauses at improvement proposal instead of executing it automatically", async () => {
   const { audit, orchestrator } = createOrchestrator("mvp-improvement");
   const runner = new ControlledAutonomousMvpRunner(
-    { run: async () => result([{ id: "proposal-1", title: "Review failure pattern", reason: "failure evidence", evidence: { failures: 1, successRate: null } }]) },
+    { run: async () => result([{ id: "proposal-1", title: "Review failure pattern", reason: "failure evidence", evidence: { totalRecords: 1, failures: 1, successRate: null } }]) },
     orchestrator,
   );
 
