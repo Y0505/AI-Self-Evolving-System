@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { InMemoryAutonomousRunEventStore } from "../src/runtime/autonomous-run-audit.js";
 import { ControlledAutonomousMvpRunner } from "../src/mvp/autonomous-mvp-runner.js";
+import type { MvpRunResult } from "../src/mvp/mvp-runner.js";
 import { ControlledAutonomousRunOrchestrator } from "../src/runtime/autonomous-run-orchestrator.js";
 import { DeterministicAutonomousRunRecoveryPolicy } from "../src/runtime/autonomous-run-recovery.js";
 import { ControlledAutonomousRunStateMachine } from "../src/runtime/autonomous-run-state-machine.js";
@@ -23,7 +24,7 @@ const createOrchestrator = (runId: string) => {
   return { audit, orchestrator };
 };
 
-const result = (improvementProposals: unknown[] = []) => ({
+const result = (improvementProposals: MvpRunResult["improvementProposals"] = []): MvpRunResult => ({
   selectedGoal: null,
   evaluation: null,
   research: null,
@@ -61,7 +62,7 @@ test("integrates the deterministic MVP loop into the autonomous lifecycle", asyn
 test("pauses at improvement proposal instead of executing it automatically", async () => {
   const { audit, orchestrator } = createOrchestrator("mvp-improvement");
   const runner = new ControlledAutonomousMvpRunner(
-    { run: async () => result(["proposal-1"]) },
+    { run: async () => result([{ id: "proposal-1", title: "Review failure pattern", reason: "failure evidence", evidence: { failures: 1, successRate: null } }]) },
     orchestrator,
   );
 
