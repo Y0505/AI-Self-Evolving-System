@@ -56,8 +56,18 @@ test("applies terminal stop to the autonomous run state", async () => {
   assert.equal(events[2].type, "run_failed");
 });
 
-test("does not automatically execute non-terminal recovery decisions", async () => {
-  const { orchestrator } = createOrchestrator();
+test("applies non-terminal recovery only at a valid lifecycle boundary", async () => {
+  const { audit, orchestrator } = createOrchestrator();
+  await orchestrator.transition("evaluate");
+  await orchestrator.transition("select_goal");
+  await orchestrator.transition("research");
+  await orchestrator.transition("plan");
+  await orchestrator.transition("build");
+  await orchestrator.transition("test");
+  await orchestrator.transition("observe");
+  await orchestrator.transition("learn");
+  await orchestrator.transition("propose_improvement");
+  await orchestrator.transition("wait_for_approval");
 
   const action = await orchestrator.recordTaskFailure("task-1", {
     kind: "approval_rejected",
@@ -66,5 +76,8 @@ test("does not automatically execute non-terminal recovery decisions", async () 
   });
 
   assert.equal(action, "learn_again");
-  assert.equal(orchestrator.state, "discover");
+  assert.equal(orchestrator.state, "learn_again");
+  const events = await audit.listByRun("recovery-lifecycle-run");
+  assert.equal(events.at(-1)?.type, "state_transition");
+  assert.equal(events.at(-1)?.state, "learn_again");
 });
