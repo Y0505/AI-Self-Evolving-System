@@ -1,7 +1,11 @@
 import type { Opportunity } from "../opportunity/opportunity-evaluator.js";
-import type { MvpRunResult, MvpRunner } from "./mvp-runner.js";
+import type { MvpRunResult } from "./mvp-runner.js";
 import type { AutonomousRunOrchestrator } from "../runtime/autonomous-run-orchestrator.js";
 import type { AutonomousRunState } from "../runtime/autonomous-run-state-machine.js";
+
+export interface MvpRunnerBoundary {
+  run(opportunities: Opportunity[]): Promise<MvpRunResult>;
+}
 
 export interface AutonomousMvpRunResult {
   run: MvpRunResult;
@@ -11,7 +15,7 @@ export interface AutonomousMvpRunResult {
 
 export class ControlledAutonomousMvpRunner {
   constructor(
-    private readonly mvpRunner: MvpRunner,
+    private readonly mvpRunner: MvpRunnerBoundary,
     private readonly orchestrator: AutonomousRunOrchestrator,
   ) {}
 
