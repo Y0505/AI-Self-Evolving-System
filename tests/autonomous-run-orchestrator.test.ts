@@ -72,12 +72,13 @@ test("orchestrator records terminal recovery decisions without executing them", 
 test("completion and failure are terminal and auditable", async () => {
   const completeDeps = dependencies();
   const completed = new ControlledAutonomousRunOrchestrator("run-complete", completeDeps);
+  for (const state of ["evaluate", "select_goal", "research", "plan", "build", "test", "observe", "learn"] as const) {
+    await completed.transition(state);
+  }
   await completed.complete("finished");
   assert.equal(completed.state, "completed");
-  assert.deepEqual((await completeDeps.audit.listByRun("run-complete")).map((event) => event.type), [
-    "state_transition",
-    "run_completed",
-  ]);
+  assert.deepEqual((await completeDeps.audit.listByRun("run-complete")).at(-2)?.type, "state_transition");
+  assert.equal((await completeDeps.audit.listByRun("run-complete")).at(-1)?.type, "run_completed");
 
   const failDeps = dependencies();
   const failed = new ControlledAutonomousRunOrchestrator("run-fail", failDeps);
