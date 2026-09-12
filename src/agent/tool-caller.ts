@@ -28,8 +28,11 @@ export class ToolCaller {
   }
 
   async execute(call: ToolCall, context: ToolContext): Promise<ToolCallResult> {
+    // Budget exhaustion is a control-flow boundary and must propagate to the
+    // autonomous run orchestrator rather than being converted into a tool error.
+    this.budget?.consume("toolCalls");
+
     try {
-      this.budget?.consume("toolCalls");
       const tool = this.registry.get(call.tool);
 
       if (tool.requiresApproval) {
