@@ -114,6 +114,8 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Connect budget exhaustion to deterministic recovery classification
 - [x] Expose deterministic recovery decisions to autonomous lifecycle callers
 - [x] Apply terminal recovery decisions to autonomous run lifecycle state
+- [x] Execute safe recovery lifecycle transitions
+- [x] Connect step failures to deterministic recovery decisions without automatic retry
 
 ## Explicit non-goals for now
 
