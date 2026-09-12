@@ -1,5 +1,9 @@
 import type { AutonomousRunEvent, AutonomousRunEventStore } from "./autonomous-run-audit.js";
-import type { AutonomousRunFailure, AutonomousRunRecoveryPolicy } from "./autonomous-run-recovery.js";
+import type {
+  AutonomousRunFailure,
+  AutonomousRunRecoveryAction,
+  AutonomousRunRecoveryPolicy,
+} from "./autonomous-run-recovery.js";
 import type { AutonomousRunState, AutonomousRunStateMachine } from "./autonomous-run-state-machine.js";
 import type { DeterministicExecutionBudget } from "./execution-budget.js";
 
@@ -17,8 +21,8 @@ export interface AutonomousRunOrchestrator {
   transition(next: AutonomousRunState, message?: string): Promise<AutonomousRunState>;
   recordTaskStart(taskId: string): Promise<void>;
   recordTaskCompletion(taskId: string, message?: string): Promise<void>;
-  recordTaskFailure(taskId: string, failure: AutonomousRunFailure): Promise<void>;
-  recordBudgetExceeded(metric: string, message: string): Promise<void>;
+  recordTaskFailure(taskId: string, failure: AutonomousRunFailure): Promise<AutonomousRunRecoveryAction>;
+  recordBudgetExceeded(metric: string, message: string): Promise<AutonomousRunRecoveryAction>;
   complete(message?: string): Promise<void>;
   fail(message: string): Promise<void>;
 }
@@ -58,7 +62,7 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
     await this.append({ type: "task_completed", state: this.state, taskId, message: message?.trim() });
   }
 
-  async recordTaskFailure(taskId: string, failure: AutonomousRunFailure): Promise<void> {
+  async recordTaskFailure(taskId: string, failure: AutonomousRunFailure): Promise<AutonomousRunRecoveryAction> {
     this.requireValue(taskId, "task id");
     const action = this.dependencies.recovery.decide(failure);
     await this.append({
@@ -68,9 +72,10 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
       message: failure.message,
       metadata: { recoveryAction: action, retryCount: String(failure.retryCount) },
     });
+    return action;
   }
 
-  async recordBudgetExceeded(metric: string, message: string): Promise<void> {
+  async recordBudgetExceeded(metric: string, message: string): Promise<AutonomousRunRecoveryAction> {
     this.requireValue(metric, "budget metric");
     this.requireValue(message, "budget message");
     const recoveryAction = this.dependencies.recovery.decide({
@@ -84,6 +89,7 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
       message,
       metadata: { metric, recoveryAction },
     });
+    return recoveryAction;
   }
 
   async complete(message?: string): Promise<void> {
