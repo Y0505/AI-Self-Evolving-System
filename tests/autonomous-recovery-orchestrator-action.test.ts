@@ -27,9 +27,27 @@ const createOrchestrator = () => {
   return { audit, orchestrator };
 };
 
+const moveToApprovalBoundary = async (orchestrator: ControlledAutonomousRunOrchestrator) => {
+  for (const state of [
+    "evaluate",
+    "select_goal",
+    "research",
+    "plan",
+    "build",
+    "test",
+    "deploy",
+    "observe",
+    "learn",
+    "propose_improvement",
+    "wait_for_approval",
+  ] as const) {
+    await orchestrator.transition(state);
+  }
+};
+
 test("applies learn_again through the controlled state machine", async () => {
   const { audit, orchestrator } = createOrchestrator();
-  await orchestrator.transition("evaluate");
+  await moveToApprovalBoundary(orchestrator);
   await orchestrator.recordTaskFailure("task-1", {
     kind: "approval_rejected",
     message: "approval rejected",
@@ -44,16 +62,14 @@ test("applies learn_again through the controlled state machine", async () => {
 
 test("does not execute retry implicitly", async () => {
   const { orchestrator } = createOrchestrator();
-  let actionReturned = false;
 
   const action = await orchestrator.recordTaskFailure("task-1", {
     kind: "task_failure",
     message: "temporary failure",
     retryCount: 0,
   });
-  actionReturned = action === "retry";
 
-  assert.equal(actionReturned, true);
+  assert.equal(action, "retry");
   assert.equal(orchestrator.state, "discover");
 });
 
