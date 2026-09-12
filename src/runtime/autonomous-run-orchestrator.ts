@@ -72,6 +72,7 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
       message: failure.message,
       metadata: { recoveryAction: action, retryCount: String(failure.retryCount) },
     });
+    await this.applyTerminalRecovery(action, failure.message);
     return action;
   }
 
@@ -89,6 +90,7 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
       message,
       metadata: { metric, recoveryAction },
     });
+    await this.applyTerminalRecovery(recoveryAction, message);
     return recoveryAction;
   }
 
@@ -101,6 +103,11 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
     this.requireValue(message, "failure message");
     if (this.state !== "failed") await this.transition("failed", message);
     await this.append({ type: "run_failed", state: "failed", message });
+  }
+
+  private async applyTerminalRecovery(action: AutonomousRunRecoveryAction, message: string): Promise<void> {
+    if (action !== "stop" || this.state === "failed") return;
+    await this.fail(`Autonomous run stopped by recovery policy: ${message}`);
   }
 
   private async append(event: Omit<AutonomousRunEvent, "id" | "runId" | "createdAt">): Promise<void> {
