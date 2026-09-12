@@ -15,7 +15,7 @@ export class ControlledAutonomousTaskExecutionLoop implements TaskExecutionBound
 
   async run(taskId: string, implementationContext?: ImplementationContext): Promise<ExecutionResult> {
     try {
-      await this.startTask(taskId);
+      await this.orchestrator.recordTaskStart(taskId);
       const result = await this.executionLoop.run(taskId, implementationContext);
 
       if (result.status === "completed") {
@@ -41,17 +41,6 @@ export class ControlledAutonomousTaskExecutionLoop implements TaskExecutionBound
         message,
         retryCount: 0,
       });
-      throw error;
-    }
-  }
-
-  private async startTask(taskId: string): Promise<void> {
-    try {
-      await this.orchestrator.recordTaskStart(taskId);
-    } catch (error) {
-      if (error instanceof ExecutionBudgetExceededError) {
-        await this.orchestrator.recordBudgetExceeded(error.metric, error.message);
-      }
       throw error;
     }
   }
