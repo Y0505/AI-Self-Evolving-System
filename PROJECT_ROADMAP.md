@@ -111,6 +111,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Integrate state, budget, audit, and recovery boundaries into a controlled run orchestrator
 - [x] Connect generated task execution to autonomous budget and audit controls
 - [x] Connect agent tool calls and iterations to autonomous execution budgets
+- [x] Connect budget exhaustion to deterministic recovery classification
 
 ## Explicit non-goals for now
 
