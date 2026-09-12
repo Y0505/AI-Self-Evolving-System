@@ -37,26 +37,20 @@ test("orchestrator composes state, budget, audit, and recovery boundaries", asyn
   });
 
   assert.equal(orchestrator.state, "evaluate");
-  assert.deepEqual(deps.budget.snapshot(), {
-    tasks: 1,
-    toolCalls: 0,
-    retries: 0,
-    iterations: 0,
-  });
+  assert.deepEqual(deps.budget.snapshot(), { tasks: 1, toolCalls: 0, retries: 0, iterations: 0 });
 
   const events = await deps.audit.listByRun("run-1");
-  assert.deepEqual(events.map((event) => event.type), [
-    "state_transition",
-    "task_started",
-    "task_completed",
-    "task_failed",
-  ]);
+  assert.deepEqual(events.map((event) => event.type), ["state_transition", "task_started", "task_completed", "task_failed"]);
   assert.equal(events[3].metadata?.recoveryAction, "retry");
 });
 
-test("orchestrator records terminal recovery decisions without executing them", async () => {
+test("orchestrator applies non-terminal recovery only through a valid lifecycle transition", async () => {
   const deps = dependencies();
   const orchestrator = new ControlledAutonomousRunOrchestrator("run-2", deps);
+
+  for (const state of ["evaluate", "select_goal", "research", "plan", "build", "test", "observe", "learn", "propose_improvement", "wait_for_approval"] as const) {
+    await orchestrator.transition(state);
+  }
 
   await orchestrator.recordTaskFailure("task-1", {
     kind: "approval_rejected",
@@ -65,8 +59,10 @@ test("orchestrator records terminal recovery decisions without executing them", 
   });
 
   const events = await deps.audit.listByRun("run-2");
-  assert.equal(events[0].metadata?.recoveryAction, "learn_again");
-  assert.equal(orchestrator.state, "discover");
+  assert.equal(events.at(-1)?.metadata, undefined);
+  assert.equal(events.at(-1)?.type, "state_transition");
+  assert.equal(events.at(-1)?.state, "learn_again");
+  assert.equal(orchestrator.state, "learn_again");
 });
 
 test("completion and failure are terminal and auditable", async () => {
@@ -84,10 +80,7 @@ test("completion and failure are terminal and auditable", async () => {
   const failed = new ControlledAutonomousRunOrchestrator("run-fail", failDeps);
   await failed.fail("unsafe transition");
   assert.equal(failed.state, "failed");
-  assert.deepEqual((await failDeps.audit.listByRun("run-fail")).map((event) => event.type), [
-    "state_transition",
-    "run_failed",
-  ]);
+  assert.deepEqual((await failDeps.audit.listByRun("run-fail")).map((event) => event.type), ["state_transition", "run_failed"]);
 });
 
 test("invalid run and task identifiers are rejected", async () => {
