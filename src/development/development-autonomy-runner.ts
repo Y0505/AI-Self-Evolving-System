@@ -55,7 +55,6 @@ export interface DevelopmentCiBoundary {
 export interface DevelopmentAutonomyOptions {
   maxTasks?: number;
   maxFixAttemptsPerTask?: number;
-  stopOnCiFailure?: boolean;
   onObservation?: (observation: DevelopmentObservation) => void;
 }
 
@@ -73,7 +72,7 @@ export interface DevelopmentAutonomyResult {
 export class DevelopmentAutonomyRunner {
   private readonly maxTasks: number;
   private readonly maxFixAttemptsPerTask: number;
-  private readonly stopOnCiFailure: boolean;
+  private observations: DevelopmentObservation[] = [];
 
   constructor(
     private readonly workspace: DevelopmentWorkspaceBoundary,
@@ -86,22 +85,20 @@ export class DevelopmentAutonomyRunner {
   ) {
     this.maxTasks = options.maxTasks ?? 1;
     this.maxFixAttemptsPerTask = options.maxFixAttemptsPerTask ?? 2;
-    this.stopOnCiFailure = options.stopOnCiFailure ?? true;
-    this.observe = (observation) => {
-      observations.push(observation);
-      options.onObservation?.(observation);
-    };
+    this.onObservation = options.onObservation;
   }
 
+  private readonly onObservation?: (observation: DevelopmentObservation) => void;
+
   async run(): Promise<DevelopmentAutonomyResult> {
-    const observations: DevelopmentObservation[] = [];
+    this.observations = [];
     this.observe({ state: "inspect", detail: "Inspecting the repository and roadmap." });
     const plan = await this.workspace.inspect();
 
     const tasks = plan.tasks.slice(0, this.maxTasks);
     if (tasks.length === 0) {
       this.observe({ state: "completed", detail: "No incomplete development task was found." });
-      return { state: "completed", completedTaskIds: [], observations };
+      return { state: "completed", completedTaskIds: [], observations: this.observations };
     }
 
     const completedTaskIds: string[] = [];
@@ -126,14 +123,14 @@ export class DevelopmentAutonomyRunner {
         attempts += 1;
         if (attempts > this.maxFixAttemptsPerTask) {
           this.observe({ state: "blocked", taskId: task.id, detail: "Fix-attempt budget exhausted." });
-          return { state: "blocked", completedTaskIds, blockedTaskId: task.id, observations };
+          return { state: "blocked", completedTaskIds, blockedTaskId: task.id, observations: this.observations };
         }
 
         this.observe({ state: "diagnose", taskId: task.id, detail: `Diagnosing failed validation attempt ${attempts}.` });
         const decision = await this.diagnosis.diagnose(task, result.output);
         if (decision === "blocked") {
           this.observe({ state: "blocked", taskId: task.id, detail: "Failure diagnosis requires human intervention." });
-          return { state: "blocked", completedTaskIds, blockedTaskId: task.id, observations };
+          return { state: "blocked", completedTaskIds, blockedTaskId: task.id, observations: this.observations };
         }
       }
 
@@ -147,19 +144,18 @@ export class DevelopmentAutonomyRunner {
       const ciResult = await this.ci.waitForChecks(task);
       if (ciResult !== "passed") {
         this.observe({ state: "blocked", taskId: task.id, detail: `CI ${ciResult}; stopping before merge.` });
-        return { state: "blocked", completedTaskIds, blockedTaskId: task.id, observations };
+        return { state: "blocked", completedTaskIds, blockedTaskId: task.id, observations: this.observations };
       }
 
       completedTaskIds.push(task.id);
       this.observe({ state: "ready_for_review", taskId: task.id, detail: "CI passed; human merge/review gate remains." });
-
-      if (this.stopOnCiFailure && ciResult === "failed") {
-        return { state: "blocked", completedTaskIds, blockedTaskId: task.id, observations };
-      }
     }
 
-    return { state: "ready_for_review", completedTaskIds, observations };
+    return { state: "ready_for_review", completedTaskIds, observations: this.observations };
   }
 
-  private readonly observe: (observation: DevelopmentObservation) => void;
+  private observe(observation: DevelopmentObservation): void {
+    this.observations.push(observation);
+    this.onObservation?.(observation);
+  }
 }
