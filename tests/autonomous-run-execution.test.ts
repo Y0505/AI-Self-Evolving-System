@@ -51,7 +51,7 @@ test("execution runs lifecycle steps and records terminal completion", async () 
   assert.equal((await audit.listByRun("run-execution")).at(-1)?.type, "run_completed");
 });
 
-test("execution converts step exceptions into an audited failed run", async () => {
+test("execution converts step exceptions into an audited failed run when no task context exists", async () => {
   const { audit, orchestrator, execution } = createExecution();
 
   const result = await execution.execute([
@@ -65,4 +65,54 @@ test("execution converts step exceptions into an audited failed run", async () =
   const events = await audit.listByRun("run-execution");
   assert.equal(events.at(-1)?.type, "run_failed");
   assert.equal(events.at(-1)?.message, "research provider unavailable");
+});
+
+test("execution returns retry without automatically repeating the failed step", async () => {
+  const { orchestrator, execution } = createExecution();
+  let attempts = 0;
+
+  const result = await execution.execute([
+    {
+      state: "discover",
+      taskId: "discover-task",
+      run: async () => {
+        attempts += 1;
+        throw new Error("temporary failure");
+      },
+    },
+  ]);
+
+  assert.equal(attempts, 1);
+  assert.equal(result.completed, false);
+  assert.equal(result.state, "discover");
+  assert.equal(result.recoveryAction, "retry");
+  assert.equal(orchestrator.state, "discover");
+});
+
+test("execution applies learn_again recovery through the orchestrator", async () => {
+  const { orchestrator, execution } = createExecution();
+
+  for (const state of ["evaluate", "select_goal", "research", "plan", "build", "test", "observe", "learn", "propose_improvement", "wait_for_approval"] as const) {
+    await orchestrator.transition(state);
+  }
+
+  const result = await execution.execute([
+    {
+      state: "wait_for_approval",
+      taskId: "approval-task",
+      run: async () => {
+        throw new Error("approval denied");
+      },
+      classifyFailure: (error) => ({
+        kind: "approval_rejected",
+        message: error instanceof Error ? error.message : String(error),
+        retryCount: 0,
+      }),
+    },
+  ]);
+
+  assert.equal(result.completed, false);
+  assert.equal(result.recoveryAction, "learn_again");
+  assert.equal(result.state, "learn_again");
+  assert.equal(orchestrator.state, "learn_again");
 });
