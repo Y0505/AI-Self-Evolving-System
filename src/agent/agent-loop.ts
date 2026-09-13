@@ -1,5 +1,6 @@
 import type { ToolContext } from "../tools/tool.js";
 import { ToolCaller, type ToolCall, type ToolCallResult } from "./tool-caller.js";
+import type { DeterministicExecutionBudget } from "../runtime/execution-budget.js";
 
 export interface AgentDecision {
   type: "tool_call" | "final";
@@ -18,10 +19,12 @@ export interface AgentRunResult {
 
 export interface AgentLoopOptions {
   maxToolCalls?: number;
+  budget?: DeterministicExecutionBudget;
 }
 
 export class AgentLoop {
   private readonly maxToolCalls: number;
+  private readonly budget?: DeterministicExecutionBudget;
 
   constructor(
     private readonly model: AgentModel,
@@ -29,12 +32,14 @@ export class AgentLoop {
     options: AgentLoopOptions = {},
   ) {
     this.maxToolCalls = options.maxToolCalls ?? 5;
+    this.budget = options.budget;
   }
 
   async run(input: string, context: ToolContext): Promise<AgentRunResult> {
     const toolResults: ToolCallResult[] = [];
 
     for (let step = 0; step < this.maxToolCalls; step += 1) {
+      this.budget?.consume("iterations");
       const decision = await this.model.decide(input, toolResults);
 
       if (decision.type === "final") {

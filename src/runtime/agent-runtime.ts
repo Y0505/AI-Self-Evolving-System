@@ -28,6 +28,7 @@ import { createDeploymentStatusTool } from "../tools/deployment-status-tools.js"
 import type { HealthClient } from "../health/health-client.js";
 import { createHealthCheckTool } from "../tools/health-tools.js";
 import type { ImplementationContext } from "../planning/implementation-context.js";
+import type { DeterministicExecutionBudget } from "./execution-budget.js";
 
 export interface AgentRuntimeOptions {
   repositoryRoot: string;
@@ -36,6 +37,7 @@ export interface AgentRuntimeOptions {
   maxToolCalls?: number;
   testTimeoutMs?: number;
   approval?: ToolApprovalService;
+  budget?: DeterministicExecutionBudget;
   pullRequestClient?: PullRequestClient;
   pullRequestStatusClient?: PullRequestStatusClient;
   pullRequestChecksClient?: PullRequestChecksClient;
@@ -53,6 +55,7 @@ export class AgentRuntime {
   private readonly maxToolCalls?: number;
   private readonly testTimeoutMs?: number;
   private readonly approval?: ToolApprovalService;
+  private readonly budget?: DeterministicExecutionBudget;
   private readonly pullRequestClient?: PullRequestClient;
   private readonly pullRequestStatusClient?: PullRequestStatusClient;
   private readonly pullRequestChecksClient?: PullRequestChecksClient;
@@ -70,6 +73,7 @@ export class AgentRuntime {
     this.maxToolCalls = options.maxToolCalls;
     this.testTimeoutMs = options.testTimeoutMs;
     this.approval = options.approval;
+    this.budget = options.budget;
     this.pullRequestClient = options.pullRequestClient;
     this.pullRequestStatusClient = options.pullRequestStatusClient;
     this.pullRequestChecksClient = options.pullRequestChecksClient;
@@ -117,7 +121,8 @@ export class AgentRuntime {
     if (this.healthClient) registry.register(createHealthCheckTool(this.healthClient));
 
     const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions, implementationContext });
-    const agent = new AgentLoop(model, new ToolCaller(registry), { maxToolCalls: this.maxToolCalls });
+    const toolCaller = new ToolCaller(registry, { budget: this.budget });
+    const agent = new AgentLoop(model, toolCaller, { maxToolCalls: this.maxToolCalls, budget: this.budget });
     return agent.run(input, { workspaceRoot: this.repositoryRoot, approval: this.approval });
   }
 }
