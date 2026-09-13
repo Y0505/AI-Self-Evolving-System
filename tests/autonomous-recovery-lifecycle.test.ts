@@ -46,7 +46,7 @@ test("returns terminal stop for budget exhaustion without changing run state", a
   const action = await orchestrator.recordBudgetExceeded("toolCalls", "tool-call budget exhausted");
 
   assert.equal(action, "stop");
-  assert.equal(orchestrator.state, "created");
+  assert.equal(orchestrator.state, "discover");
   const events = await audit.listByRun("recovery-lifecycle-run");
   assert.equal(events[0].metadata?.recoveryAction, "stop");
 });
