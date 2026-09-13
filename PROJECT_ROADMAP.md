@@ -86,6 +86,18 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 
 ## Next milestones
 
+### Development autonomy
+
+- [x] Define a controlled development autonomy state machine
+- [x] Add roadmap-task selection boundary
+- [x] Add bounded implementation → test → diagnose/fix loop
+- [x] Add commit and PR boundaries
+- [x] Add CI observation boundary
+- [x] Stop automatically at the human review/merge gate
+- [ ] Connect the development loop to the existing repository, agent, GitHub, and CI implementations
+- [ ] Add a runnable development-autonomy command/entrypoint
+- [ ] Validate the full development loop against a disposable repository
+
 ### Engineering execution
 
 - [ ] Improve bounded agent execution around generated tasks
