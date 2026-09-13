@@ -128,6 +128,7 @@ class GitHubDevelopmentGitBoundary implements DevelopmentGitBoundary {
 
   constructor(
     private readonly root: string,
+    private readonly token: string,
     private readonly client: GitHubPullRequestClient,
   ) {}
 
@@ -154,7 +155,7 @@ class GitHubDevelopmentGitBoundary implements DevelopmentGitBoundary {
       .filter(Boolean);
     if (paths.length === 0) throw new Error("Autonomous implementation produced no Git changes");
     for (const path of paths) {
-      if (/(^|\/)(\.env|\.env\.|.*\.pem$|.*\.key$|credentials|secrets?)(\/|$)/i.test(path)) {
+      if (/(^|\/)(\.env|\.env\.|.*\.pem$|.*\.key$|credentials|secrets?)(\/|$)/i.test(path) && path !== ".env.example") {
         throw new Error(`Refusing to stage sensitive-looking path: ${path}`);
       }
     }
@@ -168,6 +169,8 @@ class GitHubDevelopmentGitBoundary implements DevelopmentGitBoundary {
 
     const pushed = await runGitCommand(["push", "--set-upstream", "origin", `HEAD:${this.branchName}`], { cwd: this.root });
     if (pushed.exitCode !== 0) throw new Error(`Git push failed: ${pushed.stderr}`);
+
+    await this.dispatchCi();
   }
 
   async createPullRequest(task: DevelopmentTask): Promise<void> {
@@ -195,10 +198,27 @@ class GitHubDevelopmentGitBoundary implements DevelopmentGitBoundary {
     if (!this.pullRequestRef || !this.pullRequestNumber) throw new Error("Pull request has not been created");
     return this.pullRequestRef;
   }
+
+  private async dispatchCi(): Promise<void> {
+    const response = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/actions/workflows/ci.yml/dispatches`, {
+      method: "POST",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${this.token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ref: this.branchName }),
+    });
+    if (!response.ok) {
+      throw new Error(`GitHub CI dispatch failed with HTTP ${response.status}`);
+    }
+  }
 }
 
 const git = new GitHubDevelopmentGitBoundary(
   repositoryRoot,
+  required("GITHUB_TOKEN", githubToken),
   new GitHubPullRequestClient({ token: required("GITHUB_TOKEN", githubToken) }),
 );
 
