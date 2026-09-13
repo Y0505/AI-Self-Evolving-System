@@ -1,4 +1,5 @@
 import type { AutonomousRunEvent, AutonomousRunEventStore } from "./autonomous-run-audit.js";
+import { executeSafeRecoveryAction } from "./autonomous-recovery-action.js";
 import type {
   AutonomousRunFailure,
   AutonomousRunRecoveryAction,
@@ -72,7 +73,7 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
       message: failure.message,
       metadata: { recoveryAction: action, retryCount: String(failure.retryCount) },
     });
-    await this.applyTerminalRecovery(action, failure.message);
+    await this.applyRecoveryAction(action, failure.message);
     return action;
   }
 
@@ -90,7 +91,7 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
       message,
       metadata: { metric, recoveryAction },
     });
-    await this.applyTerminalRecovery(recoveryAction, message);
+    await this.applyRecoveryAction(recoveryAction, message);
     return recoveryAction;
   }
 
@@ -105,9 +106,17 @@ export class ControlledAutonomousRunOrchestrator implements AutonomousRunOrchest
     await this.append({ type: "run_failed", state: "failed", message });
   }
 
-  private async applyTerminalRecovery(action: AutonomousRunRecoveryAction, message: string): Promise<void> {
-    if (action !== "stop" || this.state === "failed") return;
-    await this.fail(`Autonomous run stopped by recovery policy: ${message}`);
+  private async applyRecoveryAction(action: AutonomousRunRecoveryAction, message: string): Promise<void> {
+    const result = executeSafeRecoveryAction(action);
+
+    if (!result.executed || result.nextState === null || this.state === result.nextState) return;
+
+    if (result.nextState === "failed") {
+      await this.fail(`Autonomous run stopped by recovery policy: ${message}`);
+      return;
+    }
+
+    await this.transition(result.nextState, `Recovery action applied: ${action}`);
   }
 
   private async append(event: Omit<AutonomousRunEvent, "id" | "runId" | "createdAt">): Promise<void> {
