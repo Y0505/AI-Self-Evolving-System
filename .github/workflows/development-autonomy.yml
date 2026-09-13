@@ -1,0 +1,67 @@
+name: Development Autonomy
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 18 * * *"
+
+concurrency:
+  group: development-autonomy
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  autonomous-development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check for an existing autonomous PR
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base main --json headRefName --jq '[.[] | select(.headRefName | startswith("auto/dev/"))] | length')
+          if [ "$count" -gt 0 ]; then
+            echo "An autonomous development PR is already open; stopping without creating duplicate work."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.guard.outputs.skip != 'true'
+        run: npm install
+
+      - name: Build
+        if: steps.guard.outputs.skip != 'true'
+        run: npm run build
+
+      - name: Run autonomous development cycle
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          AI_API_ENDPOINT: ${{ vars.AI_API_ENDPOINT }}
+          AI_MODEL: ${{ vars.AI_MODEL }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          DEVELOPMENT_MAX_TASKS: "1"
+          DEVELOPMENT_MAX_FIX_ATTEMPTS: "2"
+          DEVELOPMENT_MAX_TOOL_CALLS: "12"
+          DEVELOPMENT_CI_TIMEOUT_MS: "300000"
+          DEVELOPMENT_CI_POLL_MS: "10000"
+        run: npm run development:autonomy
