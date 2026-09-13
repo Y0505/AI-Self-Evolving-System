@@ -1,4 +1,5 @@
-import { describe, expect, it } from "node:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { DevelopmentAutonomyRunner, type DevelopmentTask } from "./development-autonomy-runner.js";
 
 const task: DevelopmentTask = { id: "roadmap-1", title: "First incomplete milestone", source: "roadmap" };
@@ -12,7 +13,7 @@ function createRunner(overrides: {
   let testIndex = 0;
   const runner = new DevelopmentAutonomyRunner(
     { inspect: async () => ({ tasks: [task] }) },
-    { implement: async () => calls.push("implement") },
+    { implement: async () => { calls.push("implement"); } },
     {
       run: async () => {
         calls.push("test");
@@ -23,9 +24,9 @@ function createRunner(overrides: {
     },
     { diagnose: async () => { calls.push("diagnose"); return overrides.diagnosis ?? "fix"; } },
     {
-      prepare: async () => calls.push("prepare"),
-      commit: async () => calls.push("commit"),
-      createPullRequest: async () => calls.push("pr"),
+      prepare: async () => { calls.push("prepare"); },
+      commit: async () => { calls.push("commit"); },
+      createPullRequest: async () => { calls.push("pr"); },
     },
     { waitForChecks: async () => { calls.push("ci"); return overrides.ci ?? "passed"; } },
   );
@@ -37,26 +38,26 @@ describe("DevelopmentAutonomyRunner", () => {
     const { runner, calls } = createRunner();
     const result = await runner.run();
 
-    expect(result.state).toBe("ready_for_review");
-    expect(result.completedTaskIds).toEqual([task.id]);
-    expect(calls).toEqual(["prepare", "implement", "test", "commit", "pr", "ci"]);
+    assert.equal(result.state, "ready_for_review");
+    assert.deepEqual(result.completedTaskIds, [task.id]);
+    assert.deepEqual(calls, ["prepare", "implement", "test", "commit", "pr", "ci"]);
   });
 
   it("diagnoses and fixes a failed test without implicit infinite retries", async () => {
     const { runner, calls } = createRunner({ testResults: [false, true] });
     const result = await runner.run();
 
-    expect(result.state).toBe("ready_for_review");
-    expect(calls).toEqual(["prepare", "implement", "test", "diagnose", "implement", "test", "commit", "pr", "ci"]);
+    assert.equal(result.state, "ready_for_review");
+    assert.deepEqual(calls, ["prepare", "implement", "test", "diagnose", "implement", "test", "commit", "pr", "ci"]);
   });
 
   it("stops when diagnosis requires human intervention", async () => {
     const { runner, calls } = createRunner({ testResults: [false], diagnosis: "blocked" });
     const result = await runner.run();
 
-    expect(result.state).toBe("blocked");
-    expect(result.blockedTaskId).toBe(task.id);
-    expect(calls).toEqual(["prepare", "implement", "test", "diagnose"]);
+    assert.equal(result.state, "blocked");
+    assert.equal(result.blockedTaskId, task.id);
+    assert.deepEqual(calls, ["prepare", "implement", "test", "diagnose"]);
   });
 
   it("stops on failed or pending CI and never crosses the merge gate", async () => {
@@ -64,9 +65,9 @@ describe("DevelopmentAutonomyRunner", () => {
       const { runner, calls } = createRunner({ ci });
       const result = await runner.run();
 
-      expect(result.state).toBe("blocked");
-      expect(result.blockedTaskId).toBe(task.id);
-      expect(calls).toEqual(["prepare", "implement", "test", "commit", "pr", "ci"]);
+      assert.equal(result.state, "blocked");
+      assert.equal(result.blockedTaskId, task.id);
+      assert.deepEqual(calls, ["prepare", "implement", "test", "commit", "pr", "ci"]);
     }
   });
 
@@ -81,7 +82,7 @@ describe("DevelopmentAutonomyRunner", () => {
     );
 
     const result = await runner.run();
-    expect(result.state).toBe("completed");
-    expect(result.completedTaskIds).toEqual([]);
+    assert.equal(result.state, "completed");
+    assert.deepEqual(result.completedTaskIds, []);
   });
 });
