@@ -6,7 +6,7 @@ import type { PlanTaskBridge } from "../planning/plan-task-bridge.js";
 import type { TaskRegistrar } from "../planning/task-registration.js";
 import type { ImplementationContextBuilder } from "../planning/implementation-context.js";
 import type { Task } from "../core/task.js";
-import type { TaskExecutionLoop } from "../core/execution-loop.js";
+import type { ImplementationContext } from "../planning/implementation-context.js";
 import type { ExecutionResult } from "../core/execution.js";
 import type { LearningRecord, LearningRecordStore } from "../learning/learning-record.js";
 import type { RichLearningAnalyzer, RichLearningSummary } from "../learning/richer-learning-analysis.js";
@@ -14,6 +14,10 @@ import type { RichImprovementProposer } from "../learning/improvement-proposal-f
 import type { ImprovementProposal } from "../learning/improvement-proposal.js";
 import { DeterministicRichLearningAnalyzer } from "../learning/richer-learning-analysis.js";
 import { DeterministicRichImprovementProposer } from "../learning/improvement-proposal-from-rich-analysis.js";
+
+export interface TaskExecutionBoundary {
+  run(taskId: string, implementationContext?: ImplementationContext): Promise<ExecutionResult>;
+}
 
 export interface MvpRunResult {
   selectedGoal: SelectedGoal | null;
@@ -34,7 +38,7 @@ export interface MvpRunnerDependencies {
   planTaskBridge: PlanTaskBridge;
   taskRegistrar: TaskRegistrar;
   implementationContextBuilder: ImplementationContextBuilder;
-  executionLoop: TaskExecutionLoop;
+  executionLoop: TaskExecutionBoundary;
   learningStore: LearningRecordStore;
   learningAnalyzer?: RichLearningAnalyzer;
   improvementProposer?: RichImprovementProposer;
