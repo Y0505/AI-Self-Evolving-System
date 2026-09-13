@@ -1,0 +1,58 @@
+name: Development Autonomy
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 18 * * *"
+
+concurrency:
+  group: development-autonomy
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autonomous-development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check for an existing autonomous PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base main --json headRefName --jq '[.[] | select(.headRefName | startswith("auto/dev/"))] | length')
+          if [ "$count" -gt 0 ]; then
+            echo "An autonomous development PR is already open; stopping without creating duplicate work."
+            exit 0
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Run autonomous development cycle
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          AI_API_ENDPOINT: ${{ vars.AI_API_ENDPOINT }}
+          AI_MODEL: ${{ vars.AI_MODEL }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          DEVELOPMENT_MAX_TASKS: "1"
+          DEVELOPMENT_MAX_FIX_ATTEMPTS: "2"
+          DEVELOPMENT_MAX_TOOL_CALLS: "12"
+          DEVELOPMENT_CI_TIMEOUT_MS: "300000"
+          DEVELOPMENT_CI_POLL_MS: "10000"
+        run: npm run development:autonomy
