@@ -34,10 +34,13 @@ test("records budget exhaustion with the deterministic stop recovery action", as
   await orchestrator.recordBudgetExceeded("toolCalls", "Execution budget exceeded for toolCalls");
 
   const events = await audit.listByRun("budget-run");
-  assert.equal(events.length, 1);
+  assert.equal(events.length, 3);
   assert.equal(events[0].type, "budget_exceeded");
   assert.equal(events[0].metadata?.metric, "toolCalls");
   assert.equal(events[0].metadata?.recoveryAction, "stop");
+  assert.equal(events[1].type, "state_transition");
+  assert.equal(events[1].state, "failed");
+  assert.equal(events[2].type, "run_failed");
 });
 
 test("budget recovery classification does not consume retry budget or execute a retry", async () => {

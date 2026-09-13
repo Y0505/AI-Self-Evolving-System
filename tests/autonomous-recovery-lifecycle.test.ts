@@ -38,15 +38,33 @@ test("returns the recovery decision to the lifecycle caller for task failures", 
   });
 
   assert.equal(action, "retry");
+  assert.equal(orchestrator.state, "discover");
 });
 
-test("returns terminal stop for budget exhaustion without changing run state", async () => {
+test("applies terminal stop to the autonomous run state", async () => {
   const { audit, orchestrator } = createOrchestrator();
 
   const action = await orchestrator.recordBudgetExceeded("toolCalls", "tool-call budget exhausted");
 
   assert.equal(action, "stop");
-  assert.equal(orchestrator.state, "discover");
+  assert.equal(orchestrator.state, "failed");
+
   const events = await audit.listByRun("recovery-lifecycle-run");
   assert.equal(events[0].metadata?.recoveryAction, "stop");
+  assert.equal(events[1].type, "state_transition");
+  assert.equal(events[1].state, "failed");
+  assert.equal(events[2].type, "run_failed");
+});
+
+test("does not automatically execute non-terminal recovery decisions", async () => {
+  const { orchestrator } = createOrchestrator();
+
+  const action = await orchestrator.recordTaskFailure("task-1", {
+    kind: "approval_rejected",
+    message: "approval was rejected",
+    retryCount: 0,
+  });
+
+  assert.equal(action, "learn_again");
+  assert.equal(orchestrator.state, "discover");
 });

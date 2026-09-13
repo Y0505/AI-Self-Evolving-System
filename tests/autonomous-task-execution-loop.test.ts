@@ -91,6 +91,6 @@ test("records a budget boundary failure without executing the task", async () =>
   await assert.rejects(execution.run("task-1"), /Execution budget exceeded for tasks/);
   assert.equal(calls, 0);
   const events = await audit.listByRun("task-run");
-  assert.deepEqual(events.map((event) => event.type), ["budget_exceeded"]);
+  assert.deepEqual(events.map((event) => event.type), ["budget_exceeded", "state_transition", "run_failed"]);
   assert.equal(events[0].metadata?.metric, "tasks");
 });
