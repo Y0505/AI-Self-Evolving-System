@@ -1,4 +1,5 @@
-import { describe, expect, it } from "node:test";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21,7 +22,7 @@ describe("RoadmapWorkspace", () => {
     ].join("\n"));
 
     const plan = await new RoadmapWorkspace(path).inspect();
-    expect(plan.tasks.map((task) => task.title)).toEqual([
+    assert.deepEqual(plan.tasks.map((task) => task.title), [
       "First real milestone",
       "Remaining detail",
       "Future milestone",
