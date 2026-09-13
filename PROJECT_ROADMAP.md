@@ -113,6 +113,7 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Connect agent tool calls and iterations to autonomous execution budgets
 - [x] Connect budget exhaustion to deterministic recovery classification
 - [x] Expose deterministic recovery decisions to autonomous lifecycle callers
+- [x] Apply terminal recovery decisions to autonomous run lifecycle state
 
 ## Explicit non-goals for now
 
