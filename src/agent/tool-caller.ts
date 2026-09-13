@@ -1,5 +1,6 @@
 import type { ToolContext } from "../tools/tool.js";
 import { ToolRegistry } from "../tools/registry.js";
+import type { DeterministicExecutionBudget } from "../runtime/execution-budget.js";
 
 export interface ToolCall {
   tool: string;
@@ -12,10 +13,25 @@ export interface ToolCallResult {
   error?: string;
 }
 
+export interface ToolCallerOptions {
+  budget?: DeterministicExecutionBudget;
+}
+
 export class ToolCaller {
-  constructor(private readonly registry: ToolRegistry) {}
+  private readonly budget?: DeterministicExecutionBudget;
+
+  constructor(
+    private readonly registry: ToolRegistry,
+    options: ToolCallerOptions = {},
+  ) {
+    this.budget = options.budget;
+  }
 
   async execute(call: ToolCall, context: ToolContext): Promise<ToolCallResult> {
+    // Budget exhaustion is a control-flow boundary and must propagate to the
+    // autonomous run orchestrator rather than being converted into a tool error.
+    this.budget?.consume("toolCalls");
+
     try {
       const tool = this.registry.get(call.tool);
 

@@ -59,6 +59,9 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 - [x] Approved improvement execution boundary
 - [x] Richer deterministic learning analysis
 - [x] Connect execution results to richer learning analysis
+- [x] Explicit improvement approval checkpoint
+- [x] Improvement outcome verification boundary
+- [x] Controlled improvement lifecycle orchestration
 
 ### Economic decision layer
 
@@ -99,11 +102,18 @@ The system must remain controlled, auditable, incremental, and human-approved fo
 
 ### Controlled autonomy
 
-- [ ] Define end-to-end orchestration state machine
-- [ ] Add explicit budgets and execution limits
-- [ ] Add audit/event trail across autonomous runs
-- [ ] Add failure recovery without bypassing approval boundaries
-- [ ] Add human approval checkpoints for consequential actions
+- [x] Define end-to-end orchestration state machine
+- [x] Add explicit budgets and execution limits
+- [x] Add audit/event trail across autonomous runs
+- [x] Add failure recovery without bypassing approval boundaries
+- [x] Connect generated task execution to autonomous budget and audit controls
+- [x] Connect agent tool calls and iterations to autonomous execution budgets
+- [x] Connect budget exhaustion to deterministic recovery classification
+- [x] Expose deterministic recovery decisions to autonomous lifecycle callers
+- [x] Apply terminal recovery decisions to autonomous run lifecycle state
+- [x] Execute safe recovery lifecycle transitions
+- [x] Connect step failures to deterministic recovery decisions without automatic retry
+- [ ] Validate the controlled autonomous loop against a real AI provider on a disposable repository
 
 ## Explicit non-goals for now
 

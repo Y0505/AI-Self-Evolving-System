@@ -1,5 +1,6 @@
 import type { ToolContext } from "../tools/tool.js";
 import { ToolCaller, type ToolCall, type ToolCallResult } from "./tool-caller.js";
+import type { DeterministicExecutionBudget } from "../runtime/execution-budget.js";
 
 export interface AgentDecision {
   type: "tool_call" | "final";
@@ -20,6 +21,7 @@ export interface AgentLoopOptions {
   maxToolCalls?: number;
   maxConsecutiveToolErrors?: number;
   maxRepeatedToolCalls?: number;
+  budget?: DeterministicExecutionBudget;
 }
 
 function validatePositiveLimit(name: string, value: number | undefined): number | undefined {
@@ -38,6 +40,7 @@ export class AgentLoop {
   private readonly maxToolCalls: number;
   private readonly maxConsecutiveToolErrors?: number;
   private readonly maxRepeatedToolCalls?: number;
+  private readonly budget?: DeterministicExecutionBudget;
 
   constructor(
     private readonly model: AgentModel,
@@ -50,6 +53,7 @@ export class AgentLoop {
       options.maxConsecutiveToolErrors,
     );
     this.maxRepeatedToolCalls = validatePositiveLimit("maxRepeatedToolCalls", options.maxRepeatedToolCalls);
+    this.budget = options.budget;
   }
 
   async run(input: string, context: ToolContext): Promise<AgentRunResult> {
@@ -59,6 +63,7 @@ export class AgentLoop {
     let previousToolCallIdentity: string | undefined;
 
     for (let step = 0; step < this.maxToolCalls; step += 1) {
+      this.budget?.consume("iterations");
       const decision = await this.model.decide(input, toolResults);
 
       if (decision.type === "final") {
