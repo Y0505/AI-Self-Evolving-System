@@ -23,6 +23,7 @@ function createRunner(overrides: {
     },
     { diagnose: async () => { calls.push("diagnose"); return overrides.diagnosis ?? "fix"; } },
     {
+      prepare: async () => calls.push("prepare"),
       commit: async () => calls.push("commit"),
       createPullRequest: async () => calls.push("pr"),
     },
@@ -32,13 +33,13 @@ function createRunner(overrides: {
 }
 
 describe("DevelopmentAutonomyRunner", () => {
-  it("advances through implementation, PR and CI, then stops at human review", async () => {
+  it("advances through branch preparation, implementation, PR and CI, then stops at human review", async () => {
     const { runner, calls } = createRunner();
     const result = await runner.run();
 
     expect(result.state).toBe("ready_for_review");
     expect(result.completedTaskIds).toEqual([task.id]);
-    expect(calls).toEqual(["implement", "test", "commit", "pr", "ci"]);
+    expect(calls).toEqual(["prepare", "implement", "test", "commit", "pr", "ci"]);
   });
 
   it("diagnoses and fixes a failed test without implicit infinite retries", async () => {
@@ -46,7 +47,7 @@ describe("DevelopmentAutonomyRunner", () => {
     const result = await runner.run();
 
     expect(result.state).toBe("ready_for_review");
-    expect(calls).toEqual(["implement", "test", "diagnose", "implement", "test", "commit", "pr", "ci"]);
+    expect(calls).toEqual(["prepare", "implement", "test", "diagnose", "implement", "test", "commit", "pr", "ci"]);
   });
 
   it("stops when diagnosis requires human intervention", async () => {
@@ -55,7 +56,7 @@ describe("DevelopmentAutonomyRunner", () => {
 
     expect(result.state).toBe("blocked");
     expect(result.blockedTaskId).toBe(task.id);
-    expect(calls).toEqual(["implement", "test", "diagnose"]);
+    expect(calls).toEqual(["prepare", "implement", "test", "diagnose"]);
   });
 
   it("stops on failed or pending CI and never crosses the merge gate", async () => {
@@ -65,7 +66,7 @@ describe("DevelopmentAutonomyRunner", () => {
 
       expect(result.state).toBe("blocked");
       expect(result.blockedTaskId).toBe(task.id);
-      expect(calls).toEqual(["implement", "test", "commit", "pr", "ci"]);
+      expect(calls).toEqual(["prepare", "implement", "test", "commit", "pr", "ci"]);
     }
   });
 
@@ -75,7 +76,7 @@ describe("DevelopmentAutonomyRunner", () => {
       { implement: async () => { throw new Error("must not implement"); } },
       { run: async () => ({ passed: true, output: "" }) },
       { diagnose: async () => "blocked" },
-      { commit: async () => { throw new Error("must not commit"); }, createPullRequest: async () => { throw new Error("must not create PR"); } },
+      { prepare: async () => { throw new Error("must not prepare"); }, commit: async () => { throw new Error("must not commit"); }, createPullRequest: async () => { throw new Error("must not create PR"); } },
       { waitForChecks: async () => "passed" },
     );
 
