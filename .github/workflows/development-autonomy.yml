@@ -19,31 +19,39 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Check for an existing autonomous PR
+        id: guard
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           count=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base main --json headRefName --jq '[.[] | select(.headRefName | startswith("auto/dev/"))] | length')
           if [ "$count" -gt 0 ]; then
             echo "An autonomous development PR is already open; stopping without creating duplicate work."
-            exit 0
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - uses: actions/checkout@v4
+        if: steps.guard.outputs.skip != 'true'
         with:
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
+        if: steps.guard.outputs.skip != 'true'
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: steps.guard.outputs.skip != 'true'
         run: npm install
 
       - name: Build
+        if: steps.guard.outputs.skip != 'true'
         run: npm run build
 
       - name: Run autonomous development cycle
+        if: steps.guard.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
