@@ -44,6 +44,7 @@ export interface DevelopmentDiagnosisBoundary {
 }
 
 export interface DevelopmentGitBoundary {
+  prepare(task: DevelopmentTask): Promise<void>;
   commit(task: DevelopmentTask): Promise<void>;
   createPullRequest(task: DevelopmentTask): Promise<void>;
 }
@@ -105,6 +106,8 @@ export class DevelopmentAutonomyRunner {
 
     for (const task of tasks) {
       this.observe({ state: "select_task", taskId: task.id, detail: task.title });
+      this.observe({ state: "implement", taskId: task.id, detail: `Preparing an isolated branch for ${task.title}.` });
+      await this.git.prepare(task);
 
       let attempts = 0;
       let passed = false;
