@@ -54,9 +54,25 @@ test("orchestrator composes state, budget, audit, and recovery boundaries", asyn
   assert.equal(events[3].metadata?.recoveryAction, "retry");
 });
 
-test("orchestrator records terminal recovery decisions without executing them", async () => {
+test("orchestrator applies non-terminal recovery only at a valid lifecycle boundary", async () => {
   const deps = dependencies();
   const orchestrator = new ControlledAutonomousRunOrchestrator("run-2", deps);
+
+  for (const state of [
+    "evaluate",
+    "select_goal",
+    "research",
+    "plan",
+    "build",
+    "test",
+    "deploy",
+    "observe",
+    "learn",
+    "propose_improvement",
+    "wait_for_approval",
+  ] as const) {
+    await orchestrator.transition(state);
+  }
 
   await orchestrator.recordTaskFailure("task-1", {
     kind: "approval_rejected",
@@ -65,8 +81,11 @@ test("orchestrator records terminal recovery decisions without executing them", 
   });
 
   const events = await deps.audit.listByRun("run-2");
-  assert.equal(events[0].metadata?.recoveryAction, "learn_again");
-  assert.equal(orchestrator.state, "discover");
+  assert.equal(events.at(-2)?.type, "task_failed");
+  assert.equal(events.at(-2)?.metadata?.recoveryAction, "learn_again");
+  assert.equal(events.at(-1)?.type, "state_transition");
+  assert.equal(events.at(-1)?.state, "learn_again");
+  assert.equal(orchestrator.state, "learn_again");
 });
 
 test("completion and failure are terminal and auditable", async () => {
