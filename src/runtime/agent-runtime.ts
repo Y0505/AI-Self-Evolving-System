@@ -35,6 +35,8 @@ export interface AgentRuntimeOptions {
   provider: AIProvider;
   instructions?: string;
   maxToolCalls?: number;
+  maxConsecutiveToolErrors?: number;
+  maxRepeatedToolCalls?: number;
   testTimeoutMs?: number;
   approval?: ToolApprovalService;
   budget?: DeterministicExecutionBudget;
@@ -53,6 +55,8 @@ export class AgentRuntime {
   private readonly provider: AIProvider;
   private readonly instructions?: string;
   private readonly maxToolCalls?: number;
+  private readonly maxConsecutiveToolErrors?: number;
+  private readonly maxRepeatedToolCalls?: number;
   private readonly testTimeoutMs?: number;
   private readonly approval?: ToolApprovalService;
   private readonly budget?: DeterministicExecutionBudget;
@@ -71,6 +75,8 @@ export class AgentRuntime {
     this.provider = options.provider;
     this.instructions = options.instructions;
     this.maxToolCalls = options.maxToolCalls;
+    this.maxConsecutiveToolErrors = options.maxConsecutiveToolErrors;
+    this.maxRepeatedToolCalls = options.maxRepeatedToolCalls;
     this.testTimeoutMs = options.testTimeoutMs;
     this.approval = options.approval;
     this.budget = options.budget;
@@ -122,7 +128,12 @@ export class AgentRuntime {
 
     const model = new ProviderAgentModel({ provider: this.provider, task, repository, instructions: this.instructions, implementationContext });
     const toolCaller = new ToolCaller(registry, { budget: this.budget });
-    const agent = new AgentLoop(model, toolCaller, { maxToolCalls: this.maxToolCalls, budget: this.budget });
+    const agent = new AgentLoop(model, toolCaller, {
+      maxToolCalls: this.maxToolCalls,
+      maxConsecutiveToolErrors: this.maxConsecutiveToolErrors,
+      maxRepeatedToolCalls: this.maxRepeatedToolCalls,
+      budget: this.budget,
+    });
     return agent.run(input, { workspaceRoot: this.repositoryRoot, approval: this.approval });
   }
 }
