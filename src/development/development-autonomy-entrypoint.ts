@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { RoadmapWorkspace } from "./roadmap-workspace.js";
-import { DevelopmentAutonomyRunner, type DevelopmentAutonomyResult, type DevelopmentImplementationBoundary, type DevelopmentTestBoundary, type DevelopmentDiagnosisBoundary, type DevelopmentGitBoundary, type DevelopmentCiBoundary } from "./development-autonomy-runner.js";
+import { DevelopmentAutonomyRunner, type DevelopmentAutonomyResult, type DevelopmentImplementationBoundary, type DevelopmentTestBoundary, type DevelopmentDiagnosisBoundary, type DevelopmentGitBoundary, type DevelopmentCiBoundary, type DevelopmentObservation } from "./development-autonomy-runner.js";
 
 export interface DevelopmentAutonomyEntrypointOptions {
   repositoryRoot: string;
@@ -11,6 +11,7 @@ export interface DevelopmentAutonomyEntrypointOptions {
   ci: DevelopmentCiBoundary;
   maxTasks?: number;
   maxFixAttemptsPerTask?: number;
+  onObservation?: (observation: DevelopmentObservation) => void;
 }
 
 /**
@@ -34,6 +35,7 @@ export async function runDevelopmentAutonomy(
     {
       maxTasks: options.maxTasks,
       maxFixAttemptsPerTask: options.maxFixAttemptsPerTask,
+      onObservation: options.onObservation,
     },
   );
 
