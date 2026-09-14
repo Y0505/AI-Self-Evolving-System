@@ -7,7 +7,9 @@
   "scripts": {
     "build": "tsc --noEmit",
     "test": "node --import tsx --test",
-    "development:autonomy": "tsx src/development/real-development-autonomy.ts"
+    "development:autonomy": "tsx src/development/real-development-autonomy.ts",
+    "mvp:prepare": "tsx src/mvp/prepare-disposable-repository.ts",
+    "mvp:real": "tsx src/mvp/real-provider-mvp.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
