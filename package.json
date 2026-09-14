@@ -9,6 +9,7 @@
     "test": "node --import tsx --test",
     "development:autonomy": "tsx src/development/real-development-autonomy.ts",
     "mvp:prepare": "tsx src/mvp/prepare-disposable-repository.ts",
+    "mvp:preflight": "tsx src/mvp/mvp-preflight-cli.ts",
     "mvp:real": "tsx src/mvp/real-provider-mvp.ts"
   },
   "devDependencies": {
