@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { join } from "node:path";
@@ -12,7 +12,7 @@ async function runGit(cwd: string, args: string[]): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const repositoryRoot = await import("node:fs/promises").then(({ mkdtemp }) => mkdtemp(join(tmpdir(), "ai-self-evolving-mvp-")));
+  const repositoryRoot = await mkdtemp(join(tmpdir(), "ai-self-evolving-mvp-"));
 
   await writeFile(join(repositoryRoot, MARKER), "Disposable repository for AI Self-Evolving System MVP validation.\n", "utf8");
   await writeFile(join(repositoryRoot, "README.md"), "# AI Self-Evolving System MVP disposable repository\n\nThis repository exists only for a bounded validation run.\n", "utf8");
